@@ -12,9 +12,24 @@ RANGO_REPORTES = "Reportes de entrega!A:M"
 
 # Crear credenciales desde la variable de entorno
 def obtener_credenciales():
-    cred_json = os.environ["GOOGLE_CREDENTIALS"]  # viene de Render
-    cred_dict = json.loads(cred_json)
+    # 1) Leer la variable de entorno
+    cred_json = os.environ.get("GOOGLE_CREDENTIALS")
 
+    # 2) Validar que exista
+    if not cred_json:
+        raise ValueError("La variable GOOGLE_CREDENTIALS no está definida")
+
+    try:
+        # 3) Asegurar que sea texto y limpiar espacios invisibles
+        cred_json = str(cred_json).strip()
+
+        # 4) Convertir el JSON (texto) a diccionario de Python
+        cred_dict = json.loads(cred_json)
+    except json.JSONDecodeError as e:
+        # 5) Si el JSON está mal formado, lanzar un error claro
+        raise ValueError(f"Error al decodificar GOOGLE_CREDENTIALS: {e}")
+
+    # 6) Crear las credenciales de servicio con los scopes necesarios
     creds = Credentials.from_service_account_info(
         cred_dict,
         scopes=["https://www.googleapis.com/auth/spreadsheets.readonly"]
@@ -76,3 +91,4 @@ def login():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
