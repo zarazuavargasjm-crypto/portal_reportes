@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<h2>Institución: {{ institucion }}</h2>
+
+<table>
+    <tr>
+        {% for h in headers %}
+            <th>{{ h }}</th>
+        {% endfor %}
+    </tr>
+
+    {% for fila in datos %}
+        <tr>
+            {% for celda in fila %}
+                <td>{{ celda }}</td>
+            {% endfor %}
+        </tr>
+    {% endfor %}
+</table>
+
+<a href="/">Cerrar sesión</a>
+
+</body>
+</html>
