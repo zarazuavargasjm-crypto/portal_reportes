@@ -5,6 +5,12 @@
 </head>
 <body>
 
+<!-- LOADER -->
+<div id="loader" class="loader-overlay" style="display:none;">
+    <div class="spinner"></div>
+    <p class="loader-text">Cargando, por favor espera...</p>
+</div>
+
 <div class="login-container">
     <h2>Acceso al Portal</h2>
 
@@ -22,6 +28,25 @@
         <button type="submit">Entrar</button>
     </form>
 </div>
+
+<!-- SCRIPT: Mostrar loader al enviar formulario -->
+<script>
+    const form = document.querySelector("form");
+    const loader = document.getElementById("loader");
+
+    form.addEventListener("submit", () => {
+        loader.style.display = "flex";
+    });
+</script>
+
+<!-- SCRIPT: Mostrar loader si Render está despertando -->
+<script>
+    setTimeout(() => {
+        if (document.readyState !== "complete") {
+            loader.style.display = "flex";
+        }
+    }, 1000);
+</script>
 
 </body>
 </html>
