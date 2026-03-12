@@ -10,7 +10,7 @@ app = Flask(__name__)
 SPREADSHEET_ID = "1SIUppcNpM8nObGGPzEcLBrN50lLU9_bH-_yYZFoP_uM"
 RANGO_DIRECTORIO = "Directorio!A:E"
 RANGO_REPORTES = "Reportes de entrega!A:M"
-RANGO_REGISTRO = "Registro de consultas!A:E"   # NUEVO
+RANGO_REGISTRO = "Registro de consultas!A1"   # CORREGIDO
 
 
 # ---------------------------------------------------------
@@ -52,7 +52,7 @@ def leer_hoja(rango):
 
 
 # ---------------------------------------------------------
-#  ESCRIBIR EN HOJA (REGISTRO)
+#  ESCRIBIR REGISTRO (AGREGAR FILA)
 # ---------------------------------------------------------
 def escribir_registro(fila):
     creds = obtener_credenciales()
@@ -64,26 +64,34 @@ def escribir_registro(fila):
         spreadsheetId=SPREADSHEET_ID,
         range=RANGO_REGISTRO,
         valueInputOption="RAW",
+        insertDataOption="INSERT_ROWS",
         body=body
     ).execute()
 
 
 # ---------------------------------------------------------
-#  PARSEAR FECHA (FORMATO REAL DE LA HOJA)
+#  PARSEAR FECHA (ROBUSTO)
 # ---------------------------------------------------------
 def parse_fecha(fecha_str):
-    """
-    La hoja guarda: 23/2/2026
-    Google Sheets lo muestra como: lunes, 23 de febrero de 2026
-    PERO el valor real es 23/2/2026 → este es el que recibimos.
-    """
     if not fecha_str:
         return None
 
-    try:
-        return datetime.strptime(fecha_str, "%d/%m/%Y").date()
-    except:
-        return None
+    fecha_str = fecha_str.strip()
+
+    formatos = [
+        "%d/%m/%Y",
+        "%d/%m/%y",
+        "%d-%m-%Y",
+        "%d-%m-%y"
+    ]
+
+    for fmt in formatos:
+        try:
+            return datetime.strptime(fecha_str, fmt).date()
+        except:
+            pass
+
+    return None
 
 
 # ---------------------------------------------------------
