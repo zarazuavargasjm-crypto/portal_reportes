@@ -15,7 +15,7 @@ body {
 .header-uaeh h1 {
     margin: 0;
     font-size: 24px;
-    color: #8A1538; /* Rojo UAEH */
+    color: #8A1538;
     font-weight: bold;
 }
 
@@ -29,6 +29,31 @@ body {
     margin: 3px 0 0 0;
     font-size: 16px;
     font-weight: 500;
+}
+
+/* Botón cerrar sesión arriba derecha */
+.top-right {
+    position: fixed;
+    top: 10px;
+    right: 20px;
+    z-index: 10000;
+}
+
+.top-right button,
+.top-right a {
+    background: #8A1538;
+    color: #fff;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.top-right button:hover,
+.top-right a:hover {
+    background: #6b0f2b;
 }
 
 /* Contenedor login */
@@ -59,7 +84,7 @@ button {
     margin-top: 20px;
     width: 100%;
     padding: 10px;
-    background: #8A1538; /* Rojo UAEH */
+    background: #8A1538;
     color: white;
     border: none;
     border-radius: 5px;
@@ -75,7 +100,7 @@ button:hover {
     color: red;
 }
 
-/* Tablas */
+/* Contenedor tablas */
 .table-container {
     max-width: 100%;
     overflow-x: auto;
@@ -85,34 +110,7 @@ button:hover {
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
-    font-size: 14px;
-}
-
-th, td {
-    border: 1px solid #ddd;
-    padding: 8px;
-}
-
-th {
-    background: #8A1538;
-    color: white;
-    text-align: left;
-}
-
-tr:nth-child(even) {
-    background: #f9f9f9;
-}
-
-/* Estatus entregado en verde */
-.tr-entregado {
-    background-color: #e6f4ea !important;
-}
-
-/* Filtros admin */
+/* Filtros */
 .filters {
     margin-bottom: 15px;
     display: flex;
@@ -131,7 +129,46 @@ tr:nth-child(even) {
     font-size: 13px;
 }
 
-/* Link cerrar sesión */
+/* Tablas */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    font-size: 14px;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+th {
+    background: #8A1538;
+    color: white;
+    text-align: left;
+    cursor: pointer;
+}
+
+th.sort-asc::after {
+    content: " ▲";
+    font-size: 10px;
+}
+
+th.sort-desc::after {
+    content: " ▼";
+    font-size: 10px;
+}
+
+tr:nth-child(even) {
+    background: #f9f9f9;
+}
+
+/* Estatus entregado en verde */
+.tr-entregado {
+    background-color: #e6f4ea !important;
+}
+
+/* Link cerrar sesión (por si se usa como enlace) */
 .logout-link {
     display: inline-block;
     margin-top: 15px;
