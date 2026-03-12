@@ -115,9 +115,9 @@ def procesar_reportes(reportes, institucion=None, es_admin=False):
         fila = list(fila)
         fila += [""] * (len(headers) - len(fila))
 
-        institucion_fila = fila[5]
-        fecha_entrega = fila[10]
-        estatus = fila[12]
+        institucion_fila = fila[5]   # F
+        fecha_entrega = fila[11]     # L  ← CORREGIDO
+        estatus = fila[12] if len(fila) > 12 else ""
 
         # -------------------------
         # USUARIOS
@@ -156,7 +156,7 @@ def procesar_reportes(reportes, institucion=None, es_admin=False):
 
 
 # ---------------------------------------------------------
-#  REGISTRAR ACCESO (AJUSTE A HORA DE MÉXICO)
+#  REGISTRAR ACCESO (HORA DE MÉXICO)
 # ---------------------------------------------------------
 def registrar_acceso(usuario, tipo, institucion):
     fecha_utc = datetime.utcnow()
