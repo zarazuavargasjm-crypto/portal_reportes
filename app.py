@@ -70,7 +70,6 @@ def procesar_reportes(reportes, institucion=None, es_admin=False):
         if len(fila) < len(headers):
             fila += [""] * (len(headers) - len(fila))
 
-        folio = fila[0]              # A
         institucion_fila = fila[5]   # F
         fecha_entrega = fila[10]     # K
         estatus = fila[12] if len(fila) > 12 else ""  # M
@@ -99,6 +98,7 @@ def login():
         institucion = None
         es_admin = False
 
+        # Directorio: A=Escuela, B=Responsable, C=Correo, D=Usuario, E=NIP
         for fila in directorio[1:]:
             if len(fila) < 5:
                 continue
@@ -138,4 +138,5 @@ def login():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
