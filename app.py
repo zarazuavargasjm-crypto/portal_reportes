@@ -11,7 +11,7 @@ SPREADSHEET_ID = "1SIUppcNpM8nObGGPzEcLBrN50lLU9_bH-_yYZFoP_uM"
 RANGO_DIRECTORIO = "Directorio!A:E"
 RANGO_REPORTES = "Reportes de entrega!A:M"
 
-# Crear credenciales desde la variable de entorno
+
 def obtener_credenciales():
     cred_json = os.environ.get("GOOGLE_CREDENTIALS")
 
@@ -30,7 +30,7 @@ def obtener_credenciales():
     )
     return creds
 
-# Leer datos desde Google Sheets
+
 def leer_hoja(rango):
     creds = obtener_credenciales()
     service = build("sheets", "v4", credentials=creds)
@@ -41,6 +41,7 @@ def leer_hoja(rango):
     ).execute()
     return result.get("values", [])
 
+
 def parse_fecha(fecha_str):
     if not fecha_str:
         return None
@@ -50,6 +51,7 @@ def parse_fecha(fecha_str):
         except ValueError:
             continue
     return None
+
 
 def procesar_reportes(reportes, institucion=None, es_admin=False):
     if not reportes:
@@ -64,31 +66,27 @@ def procesar_reportes(reportes, institucion=None, es_admin=False):
     datos_filtrados = []
 
     for fila in filas:
-        # Asegurar que la fila tenga el mismo número de columnas que headers
         fila = list(fila)
         if len(fila) < len(headers):
             fila += [""] * (len(headers) - len(fila))
 
-        # Columnas clave
         folio = fila[0]              # A
         institucion_fila = fila[5]   # F
         fecha_entrega = fila[10]     # K
         estatus = fila[12] if len(fila) > 12 else ""  # M
 
-        # Filtrar por institución si NO es admin
         if not es_admin and institucion_fila != institucion:
             continue
 
-        # Regla de fechas para ENTREGADO
-        fecha_obj = parse_fecha(fecha_entrega)
-        if estatus == "Entregado" and fecha_obj is not None and fecha_obj < limite:
-            # Entregado hace más de 1 mes → no mostrar
-            continue
-        # Si no tiene fecha, se muestra siempre (aunque sea Entregado o no)
+        if not es_admin:
+            fecha_obj = parse_fecha(fecha_entrega)
+            if estatus == "Entregado" and fecha_obj is not None and fecha_obj < limite:
+                continue
 
         datos_filtrados.append(fila)
 
     return headers, datos_filtrados
+
 
 @app.route("/", methods=["GET", "POST"])
 def login():
@@ -101,7 +99,6 @@ def login():
         institucion = None
         es_admin = False
 
-        # Directorio: A=Escuela, B=Responsable, C=Correo, D=Usuario, E=NIP
         for fila in directorio[1:]:
             if len(fila) < 5:
                 continue
@@ -119,11 +116,9 @@ def login():
         if not institucion:
             return render_template("login.html", error="Usuario o NIP incorrectos")
 
-        # Leer reportes
         reportes = leer_hoja(RANGO_REPORTES)
 
         if es_admin:
-            # Admin ve todo
             headers, datos = procesar_reportes(reportes, es_admin=True)
             return render_template(
                 "admin.html",
@@ -131,7 +126,6 @@ def login():
                 datos=datos
             )
         else:
-            # Usuario normal ve solo su institución
             headers, datos = procesar_reportes(reportes, institucion=institucion, es_admin=False)
             return render_template(
                 "tabla.html",
@@ -141,6 +135,7 @@ def login():
             )
 
     return render_template("login.html")
+
 
 if __name__ == "__main__":
     app.run(debug=True)
