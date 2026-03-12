@@ -22,12 +22,7 @@ def obtener_credenciales():
     if not cred_json:
         raise ValueError("La variable GOOGLE_CREDENTIALS no está definida")
 
-    try:
-        cred_json = str(cred_json).strip()
-        cred_dict = json.loads(cred_json)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Error al decodificar GOOGLE_CREDENTIALS: {e}")
-
+    cred_dict = json.loads(cred_json.strip())
     creds = Credentials.from_service_account_info(
         cred_dict,
         scopes=[
@@ -39,7 +34,7 @@ def obtener_credenciales():
 
 
 # ---------------------------------------------------------
-#  LECTURA DE HOJA
+#  LEER HOJA
 # ---------------------------------------------------------
 def leer_hoja(rango):
     creds = obtener_credenciales()
@@ -52,7 +47,7 @@ def leer_hoja(rango):
 
 
 # ---------------------------------------------------------
-#  ESCRITURA EN REGISTRO (AGREGAR FILA)
+#  ESCRIBIR REGISTRO
 # ---------------------------------------------------------
 def escribir_registro(fila):
     creds = obtener_credenciales()
@@ -70,19 +65,26 @@ def escribir_registro(fila):
 
 
 # ---------------------------------------------------------
-#  PARSEAR FECHA (ROBUSTO)
+#  PARSEAR FECHA (ROBUSTO + SERIAL)
 # ---------------------------------------------------------
 def parse_fecha(fecha_str):
     if not fecha_str:
         return None
 
-    fecha_str = fecha_str.strip()
+    fecha_str = str(fecha_str).strip()
 
+    # 1. Si es número serial de Google Sheets
+    if fecha_str.isdigit():
+        try:
+            base = datetime(1899, 12, 30)
+            return (base + timedelta(days=int(fecha_str))).date()
+        except:
+            pass
+
+    # 2. Intentar formatos comunes
     formatos = [
-        "%d/%m/%Y",
-        "%d/%m/%y",
-        "%d-%m-%Y",
-        "%d-%m-%y"
+        "%d/%m/%Y", "%d/%m/%y",
+        "%d-%m-%Y", "%d-%m-%y"
     ]
 
     for fmt in formatos:
@@ -95,7 +97,7 @@ def parse_fecha(fecha_str):
 
 
 # ---------------------------------------------------------
-#  PROCESAR REPORTES (LÓGICA CORRECTA)
+#  PROCESAR REPORTES
 # ---------------------------------------------------------
 def procesar_reportes(reportes, institucion=None, es_admin=False):
     if not reportes:
@@ -111,44 +113,42 @@ def procesar_reportes(reportes, institucion=None, es_admin=False):
 
     for fila in filas:
         fila = list(fila)
-        if len(fila) < len(headers):
-            fila += [""] * (len(headers) - len(fila))
+        fila += [""] * (len(headers) - len(fila))
 
-        institucion_fila = fila[5]   # F
-        fecha_entrega = fila[10]     # K
-        estatus = fila[12] if len(fila) > 12 else ""
+        institucion_fila = fila[5]
+        fecha_entrega = fila[10]
+        estatus = fila[12]
 
         # -------------------------
-        # FILTRO PARA USUARIOS
+        # USUARIOS
         # -------------------------
         if not es_admin:
 
-            # Filtrar por institución
             if institucion_fila != institucion:
                 continue
 
             fecha_obj = parse_fecha(fecha_entrega)
 
-            # PENDIENTES → SIEMPRE SE MUESTRAN
+            # PENDIENTES → SIEMPRE
             if estatus == "Pendiente":
                 datos_filtrados.append(fila)
                 continue
 
-            # ENTREGADOS SIN FECHA → NO mostrar
+            # ENTREGADOS SIN FECHA → NO
             if estatus == "Entregado" and not fecha_obj:
                 continue
 
-            # ENTREGADOS CON MÁS DE 30 DÍAS → NO mostrar
+            # ENTREGADOS > 30 días → NO
             if estatus == "Entregado" and fecha_obj < limite:
                 continue
 
-            # ENTREGADOS RECIENTES (≤ 30 días) → mostrar
+            # ENTREGADOS RECIENTES → SÍ
             if estatus == "Entregado":
                 datos_filtrados.append(fila)
                 continue
 
         # -------------------------
-        # ADMIN VE TODO
+        # ADMIN
         # -------------------------
         datos_filtrados.append(fila)
 
@@ -156,10 +156,13 @@ def procesar_reportes(reportes, institucion=None, es_admin=False):
 
 
 # ---------------------------------------------------------
-#  REGISTRAR ACCESO
+#  REGISTRAR ACCESO (AJUSTE A HORA DE MÉXICO)
 # ---------------------------------------------------------
 def registrar_acceso(usuario, tipo, institucion):
-    fecha = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    fecha_utc = datetime.utcnow()
+    fecha_mex = fecha_utc - timedelta(hours=6)  # UTC → CST
+
+    fecha = fecha_mex.strftime("%d/%m/%Y %H:%M:%S")
     ip = request.remote_addr or "N/A"
 
     fila = [fecha, usuario, ip, tipo, institucion]
@@ -184,30 +187,25 @@ def login():
             if len(fila) < 5:
                 continue
 
-            escuela = fila[0]
-            user = fila[3]
-            password = fila[4]
+            escuela, _, _, user, password = fila
 
             if usuario == user and nip == password:
                 institucion = escuela
-                if escuela == "Administrador":
-                    es_admin = True
+                es_admin = (escuela == "Administrador")
                 break
 
         if not institucion:
             return render_template("login.html", error="Usuario o NIP incorrectos")
 
-        # Registrar acceso
         registrar_acceso(usuario, "Administrador" if es_admin else "Usuario", institucion)
 
-        # Leer reportes
         reportes = leer_hoja(RANGO_REPORTES)
 
         if es_admin:
             headers, datos = procesar_reportes(reportes, es_admin=True)
             return render_template("admin.html", headers=headers, datos=datos)
-        else:
-            headers, datos = procesar_reportes(reportes, institucion=institucion, es_admin=False)
-            return render_template("tabla.html", institucion=institucion, headers=headers, datos=datos)
+
+        headers, datos = procesar_reportes(reportes, institucion=institucion, es_admin=False)
+        return render_template("tabla.html", institucion=institucion, headers=headers, datos=datos)
 
     return render_template("login.html")
