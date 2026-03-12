@@ -10,11 +10,11 @@ app = Flask(__name__)
 SPREADSHEET_ID = "1SIUppcNpM8nObGGPzEcLBrN50lLU9_bH-_yYZFoP_uM"
 RANGO_DIRECTORIO = "Directorio!A:E"
 RANGO_REPORTES = "Reportes de entrega!A:M"
-RANGO_REGISTRO = "Registro de consultas!A1"   # CORREGIDO
+RANGO_REGISTRO = "Registro de consultas!A1"
 
 
 # ---------------------------------------------------------
-#  CARGAR CREDENCIALES
+#  CREDENCIALES
 # ---------------------------------------------------------
 def obtener_credenciales():
     cred_json = os.environ.get("GOOGLE_CREDENTIALS")
@@ -39,7 +39,7 @@ def obtener_credenciales():
 
 
 # ---------------------------------------------------------
-#  LEER HOJA
+#  LECTURA DE HOJA
 # ---------------------------------------------------------
 def leer_hoja(rango):
     creds = obtener_credenciales()
@@ -52,7 +52,7 @@ def leer_hoja(rango):
 
 
 # ---------------------------------------------------------
-#  ESCRIBIR REGISTRO (AGREGAR FILA)
+#  ESCRITURA EN REGISTRO (AGREGAR FILA)
 # ---------------------------------------------------------
 def escribir_registro(fila):
     creds = obtener_credenciales()
@@ -122,13 +122,19 @@ def procesar_reportes(reportes, institucion=None, es_admin=False):
         # FILTRO PARA USUARIOS
         # -------------------------
         if not es_admin:
+
+            # Filtrar por institución
             if institucion_fila != institucion:
                 continue
 
             fecha_obj = parse_fecha(fecha_entrega)
 
-            # Si está entregado y tiene más de 1 mes → NO mostrar
-            if estatus == "Entregado" and fecha_obj and fecha_obj < limite:
+            # Si está entregado pero NO tiene fecha → NO mostrar
+            if estatus == "Entregado" and not fecha_obj:
+                continue
+
+            # Si está entregado y tiene más de 30 días → NO mostrar
+            if estatus == "Entregado" and fecha_obj < limite:
                 continue
 
         # -------------------------
@@ -190,7 +196,6 @@ def login():
         if es_admin:
             headers, datos = procesar_reportes(reportes, es_admin=True)
             return render_template("admin.html", headers=headers, datos=datos)
-
         else:
             headers, datos = procesar_reportes(reportes, institucion=institucion, es_admin=False)
             return render_template("tabla.html", institucion=institucion, headers=headers, datos=datos)
