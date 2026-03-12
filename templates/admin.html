@@ -1,1 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
 
+<div class="header-uaeh">
+    <h1>Universidad Autónoma del Estado de Hidalgo</h1>
+    <h2>Dirección de Administración Escolar</h2>
+    <h3>Área de Trámites y Certificados</h3>
+</div>
+
+<div class="table-container">
+    <h2>Panel de Administración</h2>
+
+    <div class="filters">
+        <div>
+            <label for="filtro-folio">Folio:</label>
+            <input type="text" id="filtro-folio" placeholder="Buscar por folio">
+        </div>
+        <div>
+            <label for="filtro-estatus">Estatus:</label>
+            <select id="filtro-estatus">
+                <option value="">Todos</option>
+                <option value="Entregado">Entregado</option>
+                <option value="En proceso">En proceso</option>
+                <option value="Pendiente">Pendiente</option>
+            </select>
+        </div>
+        <div>
+            <label for="filtro-institucion">Institución:</label>
+            <input type="text" id="filtro-institucion" placeholder="Buscar institución">
+        </div>
+        <div>
+            <button type="button" onclick="window.print()">Exportar a PDF</button>
+        </div>
+    </div>
+
+    <table id="tabla-admin">
+        <tr>
+            {% for h in headers %}
+                <th>{{ h }}</th>
+            {% endfor %}
+        </tr>
+
+        {% for fila in datos %}
+            {% set estatus = fila[12] if fila|length > 12 else '' %}
+            <tr class="fila-dato {% if estatus == 'Entregado' %}tr-entregado{% endif %}">
+                {% for celda in fila %}
+                    <td>{{ celda }}</td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+    </table>
+
+    <a href="/" class="logout-link">Cerrar sesión</a>
+</div>
+
+<script>
+    const inputFolio = document.getElementById("filtro-folio");
+    const selectEstatus = document.getElementById("filtro-estatus");
+    const inputInstitucion = document.getElementById("filtro-institucion");
+    const filas = document.querySelectorAll("#tabla-admin .fila-dato");
+
+    function aplicarFiltros() {
+        const folioVal = inputFolio.value.toLowerCase();
+        const estatusVal = selectEstatus.value;
+        const instVal = inputInstitucion.value.toLowerCase();
+
+        filas.forEach(fila => {
+            const celdas = fila.querySelectorAll("td");
+            const folio = celdas[0]?.textContent.toLowerCase() || "";
+            const institucion = celdas[5]?.textContent.toLowerCase() || "";
+            const estatus = celdas[12]?.textContent || "";
+
+            let visible = true;
+
+            if (folioVal && !folio.includes(folioVal)) {
+                visible = false;
+            }
+
+            if (estatusVal && estatus !== estatusVal) {
+                visible = false;
+            }
+
+            if (instVal && !institucion.includes(instVal)) {
+                visible = false;
+            }
+
+            fila.style.display = visible ? "" : "none";
+        });
+    }
+
+    inputFolio.addEventListener("input", aplicarFiltros);
+    selectEstatus.addEventListener("change", aplicarFiltros);
+    inputInstitucion.addEventListener("input", aplicarFiltros);
+</script>
+
+</body>
+</html>
