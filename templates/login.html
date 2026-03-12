@@ -11,6 +11,12 @@
     <p class="loader-text">Cargando, por favor espera...</p>
 </div>
 
+<div class="header-uaeh">
+    <h1>Universidad Autónoma del Estado de Hidalgo</h1>
+    <h2>Dirección de Administración Escolar</h2>
+    <h3>Área de Trámites y Certificados</h3>
+</div>
+
 <div class="login-container">
     <h2>Acceso al Portal</h2>
 
@@ -29,7 +35,6 @@
     </form>
 </div>
 
-<!-- SCRIPT: Mostrar loader al enviar formulario -->
 <script>
     const form = document.querySelector("form");
     const loader = document.getElementById("loader");
@@ -37,10 +42,7 @@
     form.addEventListener("submit", () => {
         loader.style.display = "flex";
     });
-</script>
 
-<!-- SCRIPT: Mostrar loader si Render está despertando -->
-<script>
     setTimeout(() => {
         if (document.readyState !== "complete") {
             loader.style.display = "flex";
