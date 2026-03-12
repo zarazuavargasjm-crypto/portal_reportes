@@ -5,10 +5,12 @@
 </head>
 <body>
 
+<!-- Botón cerrar sesión -->
 <div class="top-right">
     <a href="/">Cerrar sesión</a>
 </div>
 
+<!-- Encabezado institucional -->
 <div class="header-uaeh">
     <h1>Universidad Autónoma del Estado de Hidalgo</h1>
     <h2>Dirección de Administración Escolar</h2>
@@ -18,6 +20,7 @@
 <div class="table-container">
     <h2>Institución: {{ institucion }}</h2>
 
+    <!-- Filtros -->
     <div class="filters">
         <div>
             <label for="filtro-cuenta">Número de cuenta:</label>
@@ -29,6 +32,7 @@
         </div>
     </div>
 
+    <!-- Tabla -->
     <table id="tabla-usuario">
         <tr>
             {% for h in headers %}
@@ -63,13 +67,8 @@
 
             let visible = true;
 
-            if (cuentaVal && !cuenta.includes(cuentaVal)) {
-                visible = false;
-            }
-
-            if (folioVal && !folio.includes(folioVal)) {
-                visible = false;
-            }
+            if (cuentaVal && !cuenta.includes(cuentaVal)) visible = false;
+            if (folioVal && !folio.includes(folioVal)) visible = false;
 
             fila.style.display = visible ? "" : "none";
         });
@@ -78,15 +77,14 @@
     filtroCuenta.addEventListener("input", aplicarFiltrosUsuario);
     filtroFolio.addEventListener("input", aplicarFiltrosUsuario);
 
+    /* Ordenamiento por columnas */
     function sortTable(tableId, colIndex) {
         const table = document.getElementById(tableId);
         const rows = Array.from(table.querySelectorAll(".fila-dato"));
         const ths = table.querySelectorAll("th");
 
         ths.forEach((th, idx) => {
-            if (idx !== colIndex) {
-                th.classList.remove("sort-asc", "sort-desc");
-            }
+            if (idx !== colIndex) th.classList.remove("sort-asc", "sort-desc");
         });
 
         const th = ths[colIndex];
@@ -104,11 +102,8 @@
             const bIsNum = !isNaN(bNum);
 
             let comp = 0;
-            if (aIsNum && bIsNum) {
-                comp = aNum - bNum;
-            } else {
-                comp = aText.localeCompare(bText, "es", { numeric: true, sensitivity: "base" });
-            }
+            if (aIsNum && bIsNum) comp = aNum - bNum;
+            else comp = aText.localeCompare(bText, "es", { numeric: true, sensitivity: "base" });
 
             return isAsc ? comp : -comp;
         });
@@ -123,4 +118,3 @@
 
 </body>
 </html>
-
