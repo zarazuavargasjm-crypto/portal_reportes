@@ -95,7 +95,7 @@ def parse_fecha(fecha_str):
 
 
 # ---------------------------------------------------------
-#  PROCESAR REPORTES
+#  PROCESAR REPORTES (LÓGICA CORRECTA)
 # ---------------------------------------------------------
 def procesar_reportes(reportes, institucion=None, es_admin=False):
     if not reportes:
@@ -129,13 +129,22 @@ def procesar_reportes(reportes, institucion=None, es_admin=False):
 
             fecha_obj = parse_fecha(fecha_entrega)
 
-            # Si está entregado pero NO tiene fecha → NO mostrar
+            # PENDIENTES → SIEMPRE SE MUESTRAN
+            if estatus == "Pendiente":
+                datos_filtrados.append(fila)
+                continue
+
+            # ENTREGADOS SIN FECHA → NO mostrar
             if estatus == "Entregado" and not fecha_obj:
                 continue
 
-            # Si está entregado y tiene más de 30 días → NO mostrar
+            # ENTREGADOS CON MÁS DE 30 DÍAS → NO mostrar
             if estatus == "Entregado" and fecha_obj < limite:
                 continue
+
+            # ENTREGADOS RECIENTES → mostrar
+            datos_filtrados.append(fila)
+            continue
 
         # -------------------------
         # ADMIN VE TODO
