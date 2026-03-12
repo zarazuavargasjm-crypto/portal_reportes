@@ -5,10 +5,12 @@
 </head>
 <body>
 
+<!-- Botón cerrar sesión -->
 <div class="top-right">
     <a href="/">Cerrar sesión</a>
 </div>
 
+<!-- Encabezado institucional -->
 <div class="header-uaeh">
     <h1>Universidad Autónoma del Estado de Hidalgo</h1>
     <h2>Dirección de Administración Escolar</h2>
@@ -18,15 +20,23 @@
 <div class="table-container">
     <h2>Panel de Administración</h2>
 
+    <!-- Filtros -->
     <div class="filters">
         <div>
             <label for="filtro-cuenta-admin">Número de cuenta:</label>
             <input type="text" id="filtro-cuenta-admin" placeholder="Buscar por número de cuenta">
         </div>
+
         <div>
             <label for="filtro-folio-admin">Folio:</label>
             <input type="text" id="filtro-folio-admin" placeholder="Buscar por folio">
         </div>
+
+        <div>
+            <label for="filtro-institucion-admin">Institución:</label>
+            <input type="text" id="filtro-institucion-admin" placeholder="Buscar institución">
+        </div>
+
         <div>
             <label for="filtro-estatus-admin">Estatus:</label>
             <select id="filtro-estatus-admin">
@@ -35,11 +45,13 @@
                 <option value="Pendiente">Pendiente</option>
             </select>
         </div>
+
         <div>
             <button type="button" onclick="window.print()">Exportar a PDF</button>
         </div>
     </div>
 
+    <!-- Tabla -->
     <table id="tabla-admin">
         <tr>
             {% for h in headers %}
@@ -60,34 +72,32 @@
 
 <script>
     const filasAdmin = document.querySelectorAll("#tabla-admin .fila-dato");
+
     const filtroCuentaAdmin = document.getElementById("filtro-cuenta-admin");
     const filtroFolioAdmin = document.getElementById("filtro-folio-admin");
+    const filtroInstitucionAdmin = document.getElementById("filtro-institucion-admin");
     const filtroEstatusAdmin = document.getElementById("filtro-estatus-admin");
 
     function aplicarFiltrosAdmin() {
         const cuentaVal = filtroCuentaAdmin.value.toLowerCase();
         const folioVal = filtroFolioAdmin.value.toLowerCase();
+        const institucionVal = filtroInstitucionAdmin.value.toLowerCase();
         const estatusVal = filtroEstatusAdmin.value;
 
         filasAdmin.forEach(fila => {
             const celdas = fila.querySelectorAll("td");
+
             const cuenta = celdas[1]?.textContent.toLowerCase() || ""; // B
             const folio = celdas[9]?.textContent.toLowerCase() || "";  // J
-            const estatus = celdas[12]?.textContent || "";             // M
+            const institucion = celdas[5]?.textContent.toLowerCase() || ""; // F
+            const estatus = celdas[12]?.textContent || ""; // M
 
             let visible = true;
 
-            if (cuentaVal && !cuenta.includes(cuentaVal)) {
-                visible = false;
-            }
-
-            if (folioVal && !folio.includes(folioVal)) {
-                visible = false;
-            }
-
-            if (estatusVal && estatus !== estatusVal) {
-                visible = false;
-            }
+            if (cuentaVal && !cuenta.includes(cuentaVal)) visible = false;
+            if (folioVal && !folio.includes(folioVal)) visible = false;
+            if (institucionVal && !institucion.includes(institucionVal)) visible = false;
+            if (estatusVal && estatus !== estatusVal) visible = false;
 
             fila.style.display = visible ? "" : "none";
         });
@@ -95,17 +105,17 @@
 
     filtroCuentaAdmin.addEventListener("input", aplicarFiltrosAdmin);
     filtroFolioAdmin.addEventListener("input", aplicarFiltrosAdmin);
+    filtroInstitucionAdmin.addEventListener("input", aplicarFiltrosAdmin);
     filtroEstatusAdmin.addEventListener("change", aplicarFiltrosAdmin);
 
+    /* Ordenamiento por columnas */
     function sortTable(tableId, colIndex) {
         const table = document.getElementById(tableId);
         const rows = Array.from(table.querySelectorAll(".fila-dato"));
         const ths = table.querySelectorAll("th");
 
         ths.forEach((th, idx) => {
-            if (idx !== colIndex) {
-                th.classList.remove("sort-asc", "sort-desc");
-            }
+            if (idx !== colIndex) th.classList.remove("sort-asc", "sort-desc");
         });
 
         const th = ths[colIndex];
@@ -123,11 +133,8 @@
             const bIsNum = !isNaN(bNum);
 
             let comp = 0;
-            if (aIsNum && bIsNum) {
-                comp = aNum - bNum;
-            } else {
-                comp = aText.localeCompare(bText, "es", { numeric: true, sensitivity: "base" });
-            }
+            if (aIsNum && bIsNum) comp = aNum - bNum;
+            else comp = aText.localeCompare(bText, "es", { numeric: true, sensitivity: "base" });
 
             return isAsc ? comp : -comp;
         });
