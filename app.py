@@ -142,9 +142,10 @@ def procesar_reportes(reportes, institucion=None, es_admin=False):
             if estatus == "Entregado" and fecha_obj < limite:
                 continue
 
-            # ENTREGADOS RECIENTES → mostrar
-            datos_filtrados.append(fila)
-            continue
+            # ENTREGADOS RECIENTES (≤ 30 días) → mostrar
+            if estatus == "Entregado":
+                datos_filtrados.append(fila)
+                continue
 
         # -------------------------
         # ADMIN VE TODO
