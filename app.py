@@ -18,10 +18,6 @@ RANGO_REGISTRO = "Registro de consultas!A1"
 # ---------------------------------------------------------
 def obtener_credenciales():
     cred_json = os.environ.get("GOOGLE_CREDENTIALS")
-
-    if not cred_json:
-        raise ValueError("La variable GOOGLE_CREDENTIALS no está definida")
-
     cred_dict = json.loads(cred_json.strip())
     creds = Credentials.from_service_account_info(
         cred_dict,
@@ -52,9 +48,7 @@ def leer_hoja(rango):
 def escribir_registro(fila):
     creds = obtener_credenciales()
     service = build("sheets", "v4", credentials=creds)
-
     body = {"values": [fila]}
-
     service.spreadsheets().values().append(
         spreadsheetId=SPREADSHEET_ID,
         range=RANGO_REGISTRO,
@@ -65,7 +59,7 @@ def escribir_registro(fila):
 
 
 # ---------------------------------------------------------
-#  PARSEAR FECHA (ROBUSTO + SERIAL)
+#  PARSEAR FECHA (INCLUYE FORMATO ESPAÑOL)
 # ---------------------------------------------------------
 def parse_fecha(fecha_str):
     if not fecha_str:
@@ -81,7 +75,25 @@ def parse_fecha(fecha_str):
         except:
             pass
 
-    # 2. Intentar formatos comunes
+    # 2. Si viene como: "viernes, 27 de febrero de 2026"
+    meses = {
+        "enero": 1, "febrero": 2, "marzo": 3, "abril": 4,
+        "mayo": 5, "junio": 6, "julio": 7, "agosto": 8,
+        "septiembre": 9, "octubre": 10, "noviembre": 11, "diciembre": 12
+    }
+
+    if "," in fecha_str and "de" in fecha_str:
+        try:
+            # quitar el día de la semana
+            partes = fecha_str.split(",")[1].strip()  # "27 de febrero de 2026"
+            dia, _, mes_txt, _, anio = partes.split()
+            mes = meses.get(mes_txt.lower())
+            if mes:
+                return datetime(int(anio), mes, int(dia)).date()
+        except:
+            pass
+
+    # 3. Formatos comunes
     formatos = [
         "%d/%m/%Y", "%d/%m/%y",
         "%d-%m-%Y", "%d-%m-%y"
@@ -116,8 +128,8 @@ def procesar_reportes(reportes, institucion=None, es_admin=False):
         fila += [""] * (len(headers) - len(fila))
 
         institucion_fila = fila[5]   # F
-        fecha_entrega = fila[11]     # L  ← CORREGIDO
-        estatus = fila[12] if len(fila) > 12 else ""
+        fecha_entrega = fila[11]     # L
+        estatus = fila[12]           # M
 
         # -------------------------
         # USUARIOS
@@ -160,11 +172,9 @@ def procesar_reportes(reportes, institucion=None, es_admin=False):
 # ---------------------------------------------------------
 def registrar_acceso(usuario, tipo, institucion):
     fecha_utc = datetime.utcnow()
-    fecha_mex = fecha_utc - timedelta(hours=6)  # UTC → CST
-
+    fecha_mex = fecha_utc - timedelta(hours=6)
     fecha = fecha_mex.strftime("%d/%m/%Y %H:%M:%S")
     ip = request.remote_addr or "N/A"
-
     fila = [fecha, usuario, ip, tipo, institucion]
     escribir_registro(fila)
 
