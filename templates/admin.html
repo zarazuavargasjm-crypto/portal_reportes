@@ -5,6 +5,10 @@
 </head>
 <body>
 
+<div class="top-right">
+    <a href="/">Cerrar sesión</a>
+</div>
+
 <div class="header-uaeh">
     <h1>Universidad Autónoma del Estado de Hidalgo</h1>
     <h2>Dirección de Administración Escolar</h2>
@@ -16,21 +20,20 @@
 
     <div class="filters">
         <div>
-            <label for="filtro-folio">Folio:</label>
-            <input type="text" id="filtro-folio" placeholder="Buscar por folio">
+            <label for="filtro-cuenta-admin">Número de cuenta (B):</label>
+            <input type="text" id="filtro-cuenta-admin" placeholder="Buscar por número de cuenta">
         </div>
         <div>
-            <label for="filtro-estatus">Estatus:</label>
-            <select id="filtro-estatus">
+            <label for="filtro-folio-admin">Folio (J):</label>
+            <input type="text" id="filtro-folio-admin" placeholder="Buscar por folio">
+        </div>
+        <div>
+            <label for="filtro-estatus-admin">Estatus:</label>
+            <select id="filtro-estatus-admin">
                 <option value="">Todos</option>
                 <option value="Entregado">Entregado</option>
-                <option value="En proceso">En proceso</option>
                 <option value="Pendiente">Pendiente</option>
             </select>
-        </div>
-        <div>
-            <label for="filtro-institucion">Institución:</label>
-            <input type="text" id="filtro-institucion" placeholder="Buscar institución">
         </div>
         <div>
             <button type="button" onclick="window.print()">Exportar a PDF</button>
@@ -53,28 +56,30 @@
             </tr>
         {% endfor %}
     </table>
-
-    <a href="/" class="logout-link">Cerrar sesión</a>
 </div>
 
 <script>
-    const inputFolio = document.getElementById("filtro-folio");
-    const selectEstatus = document.getElementById("filtro-estatus");
-    const inputInstitucion = document.getElementById("filtro-institucion");
-    const filas = document.querySelectorAll("#tabla-admin .fila-dato");
+    const filasAdmin = document.querySelectorAll("#tabla-admin .fila-dato");
+    const filtroCuentaAdmin = document.getElementById("filtro-cuenta-admin");
+    const filtroFolioAdmin = document.getElementById("filtro-folio-admin");
+    const filtroEstatusAdmin = document.getElementById("filtro-estatus-admin");
 
-    function aplicarFiltros() {
-        const folioVal = inputFolio.value.toLowerCase();
-        const estatusVal = selectEstatus.value;
-        const instVal = inputInstitucion.value.toLowerCase();
+    function aplicarFiltrosAdmin() {
+        const cuentaVal = filtroCuentaAdmin.value.toLowerCase();
+        const folioVal = filtroFolioAdmin.value.toLowerCase();
+        const estatusVal = filtroEstatusAdmin.value;
 
-        filas.forEach(fila => {
+        filasAdmin.forEach(fila => {
             const celdas = fila.querySelectorAll("td");
-            const folio = celdas[0]?.textContent.toLowerCase() || "";
-            const institucion = celdas[5]?.textContent.toLowerCase() || "";
-            const estatus = celdas[12]?.textContent || "";
+            const cuenta = celdas[1]?.textContent.toLowerCase() || ""; // B
+            const folio = celdas[9]?.textContent.toLowerCase() || "";  // J
+            const estatus = celdas[12]?.textContent || "";             // M
 
             let visible = true;
+
+            if (cuentaVal && !cuenta.includes(cuentaVal)) {
+                visible = false;
+            }
 
             if (folioVal && !folio.includes(folioVal)) {
                 visible = false;
@@ -84,17 +89,55 @@
                 visible = false;
             }
 
-            if (instVal && !institucion.includes(instVal)) {
-                visible = false;
-            }
-
             fila.style.display = visible ? "" : "none";
         });
     }
 
-    inputFolio.addEventListener("input", aplicarFiltros);
-    selectEstatus.addEventListener("change", aplicarFiltros);
-    inputInstitucion.addEventListener("input", aplicarFiltros);
+    filtroCuentaAdmin.addEventListener("input", aplicarFiltrosAdmin);
+    filtroFolioAdmin.addEventListener("input", aplicarFiltrosAdmin);
+    filtroEstatusAdmin.addEventListener("change", aplicarFiltrosAdmin);
+
+    function sortTable(tableId, colIndex) {
+        const table = document.getElementById(tableId);
+        const rows = Array.from(table.querySelectorAll(".fila-dato"));
+        const ths = table.querySelectorAll("th");
+
+        ths.forEach((th, idx) => {
+            if (idx !== colIndex) {
+                th.classList.remove("sort-asc", "sort-desc");
+            }
+        });
+
+        const th = ths[colIndex];
+        const isAsc = !th.classList.contains("sort-asc");
+        th.classList.toggle("sort-asc", isAsc);
+        th.classList.toggle("sort-desc", !isAsc);
+
+        rows.sort((a, b) => {
+            const aText = a.querySelectorAll("td")[colIndex]?.textContent.trim() || "";
+            const bText = b.querySelectorAll("td")[colIndex]?.textContent.trim() || "";
+
+            const aNum = parseFloat(aText.replace(/,/g, ""));
+            const bNum = parseFloat(bText.replace(/,/g, ""));
+            const aIsNum = !isNaN(aNum);
+            const bIsNum = !isNaN(bNum);
+
+            let comp = 0;
+            if (aIsNum && bIsNum) {
+                comp = aNum - bNum;
+            } else {
+                comp = aText.localeCompare(bText, "es", { numeric: true, sensitivity: "base" });
+            }
+
+            return isAsc ? comp : -comp;
+        });
+
+        rows.forEach(r => table.appendChild(r));
+    }
+
+    document.querySelectorAll("#tabla-admin th").forEach((th, index) => {
+        th.addEventListener("click", () => sortTable("tabla-admin", index));
+    });
 </script>
 
 </body>
