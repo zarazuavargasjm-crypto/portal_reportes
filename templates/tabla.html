@@ -5,6 +5,10 @@
 </head>
 <body>
 
+<div class="top-right">
+    <a href="/">Cerrar sesión</a>
+</div>
+
 <div class="header-uaeh">
     <h1>Universidad Autónoma del Estado de Hidalgo</h1>
     <h2>Dirección de Administración Escolar</h2>
@@ -14,7 +18,18 @@
 <div class="table-container">
     <h2>Institución: {{ institucion }}</h2>
 
-    <table>
+    <div class="filters">
+        <div>
+            <label for="filtro-cuenta">Número de cuenta (columna B):</label>
+            <input type="text" id="filtro-cuenta" placeholder="Buscar por número de cuenta">
+        </div>
+        <div>
+            <label for="filtro-folio">Folio (columna J):</label>
+            <input type="text" id="filtro-folio" placeholder="Buscar por folio">
+        </div>
+    </div>
+
+    <table id="tabla-usuario">
         <tr>
             {% for h in headers %}
                 <th>{{ h }}</th>
@@ -22,18 +37,89 @@
         </tr>
 
         {% for fila in datos %}
-            {# Estatus en columna M (índice 12) #}
             {% set estatus = fila[12] if fila|length > 12 else '' %}
-            <tr class="{% if estatus == 'Entregado' %}tr-entregado{% endif %}">
+            <tr class="fila-dato {% if estatus == 'Entregado' %}tr-entregado{% endif %}">
                 {% for celda in fila %}
                     <td>{{ celda }}</td>
                 {% endfor %}
             </tr>
         {% endfor %}
     </table>
-
-    <a href="/" class="logout-link">Cerrar sesión</a>
 </div>
+
+<script>
+    const filasUsuario = document.querySelectorAll("#tabla-usuario .fila-dato");
+    const filtroCuenta = document.getElementById("filtro-cuenta");
+    const filtroFolio = document.getElementById("filtro-folio");
+
+    function aplicarFiltrosUsuario() {
+        const cuentaVal = filtroCuenta.value.toLowerCase();
+        const folioVal = filtroFolio.value.toLowerCase();
+
+        filasUsuario.forEach(fila => {
+            const celdas = fila.querySelectorAll("td");
+            const cuenta = celdas[1]?.textContent.toLowerCase() || ""; // B
+            const folio = celdas[9]?.textContent.toLowerCase() || "";  // J
+
+            let visible = true;
+
+            if (cuentaVal && !cuenta.includes(cuentaVal)) {
+                visible = false;
+            }
+
+            if (folioVal && !folio.includes(folioVal)) {
+                visible = false;
+            }
+
+            fila.style.display = visible ? "" : "none";
+        });
+    }
+
+    filtroCuenta.addEventListener("input", aplicarFiltrosUsuario);
+    filtroFolio.addEventListener("input", aplicarFiltrosUsuario);
+
+    function sortTable(tableId, colIndex) {
+        const table = document.getElementById(tableId);
+        const rows = Array.from(table.querySelectorAll(".fila-dato"));
+        const ths = table.querySelectorAll("th");
+
+        ths.forEach((th, idx) => {
+            if (idx !== colIndex) {
+                th.classList.remove("sort-asc", "sort-desc");
+            }
+        });
+
+        const th = ths[colIndex];
+        const isAsc = !th.classList.contains("sort-asc");
+        th.classList.toggle("sort-asc", isAsc);
+        th.classList.toggle("sort-desc", !isAsc);
+
+        rows.sort((a, b) => {
+            const aText = a.querySelectorAll("td")[colIndex]?.textContent.trim() || "";
+            const bText = b.querySelectorAll("td")[colIndex]?.textContent.trim() || "";
+
+            const aNum = parseFloat(aText.replace(/,/g, ""));
+            const bNum = parseFloat(bText.replace(/,/g, ""));
+            const aIsNum = !isNaN(aNum);
+            const bIsNum = !isNaN(bNum);
+
+            let comp = 0;
+            if (aIsNum && bIsNum) {
+                comp = aNum - bNum;
+            } else {
+                comp = aText.localeCompare(bText, "es", { numeric: true, sensitivity: "base" });
+            }
+
+            return isAsc ? comp : -comp;
+        });
+
+        rows.forEach(r => table.appendChild(r));
+    }
+
+    document.querySelectorAll("#tabla-usuario th").forEach((th, index) => {
+        th.addEventListener("click", () => sortTable("tabla-usuario", index));
+    });
+</script>
 
 </body>
 </html>
