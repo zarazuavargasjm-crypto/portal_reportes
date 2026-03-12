@@ -5,25 +5,35 @@
 </head>
 <body>
 
-<h2>Institución: {{ institucion }}</h2>
+<div class="header-uaeh">
+    <h1>Universidad Autónoma del Estado de Hidalgo</h1>
+    <h2>Dirección de Administración Escolar</h2>
+    <h3>Área de Trámites y Certificados</h3>
+</div>
 
-<table>
-    <tr>
-        {% for h in headers %}
-            <th>{{ h }}</th>
-        {% endfor %}
-    </tr>
+<div class="table-container">
+    <h2>Institución: {{ institucion }}</h2>
 
-    {% for fila in datos %}
+    <table>
         <tr>
-            {% for celda in fila %}
-                <td>{{ celda }}</td>
+            {% for h in headers %}
+                <th>{{ h }}</th>
             {% endfor %}
         </tr>
-    {% endfor %}
-</table>
 
-<a href="/">Cerrar sesión</a>
+        {% for fila in datos %}
+            {# Estatus en columna M (índice 12) #}
+            {% set estatus = fila[12] if fila|length > 12 else '' %}
+            <tr class="{% if estatus == 'Entregado' %}tr-entregado{% endif %}">
+                {% for celda in fila %}
+                    <td>{{ celda }}</td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+    </table>
+
+    <a href="/" class="logout-link">Cerrar sesión</a>
+</div>
 
 </body>
 </html>
