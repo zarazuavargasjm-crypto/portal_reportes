@@ -4,18 +4,19 @@ from datetime import datetime, timedelta
 from flask import Flask, render_template, request
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
 
 SPREADSHEET_ID = "1SIUppcNpM8nObGGPzEcLBrN50lLU9_bH-_yYZFoP_uM"
 RANGO_DIRECTORIO = "Directorio!A:E"
 RANGO_REPORTES = "Reportes de entrega!A:M"
 RANGO_REGISTRO = "Registro de consultas!A1"
 
-
-# ---------------------------------------------------------
+# ============================
 #  CREDENCIALES
-# ---------------------------------------------------------
+# ============================
 def obtener_credenciales():
     cred_json = os.environ.get("GOOGLE_CREDENTIALS")
     cred_dict = json.loads(cred_json.strip())
@@ -28,10 +29,9 @@ def obtener_credenciales():
     )
     return creds
 
-
-# ---------------------------------------------------------
+# ============================
 #  LEER HOJA
-# ---------------------------------------------------------
+# ============================
 def leer_hoja(rango):
     creds = obtener_credenciales()
     service = build("sheets", "v4", credentials=creds)
@@ -41,10 +41,9 @@ def leer_hoja(rango):
     ).execute()
     return result.get("values", [])
 
-
-# ---------------------------------------------------------
+# ============================
 #  ESCRIBIR REGISTRO
-# ---------------------------------------------------------
+# ============================
 def escribir_registro(fila):
     creds = obtener_credenciales()
     service = build("sheets", "v4", credentials=creds)
@@ -57,17 +56,16 @@ def escribir_registro(fila):
         body=body
     ).execute()
 
-
-# ---------------------------------------------------------
-#  PARSEAR FECHA (INCLUYE FORMATO ESPAÑOL)
-# ---------------------------------------------------------
+# ============================
+#  PARSEAR FECHA
+# ============================
 def parse_fecha(fecha_str):
     if not fecha_str:
         return None
 
     fecha_str = str(fecha_str).strip()
 
-    # 1. Si es número serial de Google Sheets
+    # 1. Serial de Google Sheets
     if fecha_str.isdigit():
         try:
             base = datetime(1899, 12, 30)
@@ -75,7 +73,7 @@ def parse_fecha(fecha_str):
         except:
             pass
 
-    # 2. Si viene como: "viernes, 27 de febrero de 2026"
+    # 2. "viernes, 27 de febrero de 2026"
     meses = {
         "enero": 1, "febrero": 2, "marzo": 3, "abril": 4,
         "mayo": 5, "junio": 6, "julio": 7, "agosto": 8,
@@ -84,8 +82,7 @@ def parse_fecha(fecha_str):
 
     if "," in fecha_str and "de" in fecha_str:
         try:
-            # quitar el día de la semana
-            partes = fecha_str.split(",")[1].strip()  # "27 de febrero de 2026"
+            partes = fecha_str.split(",")[1].strip()
             dia, _, mes_txt, _, anio = partes.split()
             mes = meses.get(mes_txt.lower())
             if mes:
@@ -107,10 +104,9 @@ def parse_fecha(fecha_str):
 
     return None
 
-
-# ---------------------------------------------------------
+# ============================
 #  PROCESAR REPORTES
-# ---------------------------------------------------------
+# ============================
 def procesar_reportes(reportes, institucion=None, es_admin=False):
     if not reportes:
         return [], []
@@ -131,9 +127,7 @@ def procesar_reportes(reportes, institucion=None, es_admin=False):
         fecha_entrega = fila[11]     # L
         estatus = fila[12]           # M
 
-        # -------------------------
         # USUARIOS
-        # -------------------------
         if not es_admin:
 
             if institucion_fila != institucion:
@@ -141,52 +135,144 @@ def procesar_reportes(reportes, institucion=None, es_admin=False):
 
             fecha_obj = parse_fecha(fecha_entrega)
 
-            # PENDIENTES → SIEMPRE
+            # Pendientes → siempre
             if estatus == "Pendiente":
                 datos_filtrados.append(fila)
                 continue
 
-            # ENTREGADOS SIN FECHA → NO
+            # Entregados sin fecha → no
             if estatus == "Entregado" and not fecha_obj:
                 continue
 
-            # ENTREGADOS > 30 días → NO
+            # Entregados > 30 días → no
             if estatus == "Entregado" and fecha_obj < limite:
                 continue
 
-            # ENTREGADOS RECIENTES → SÍ
+            # Entregados recientes → sí
             if estatus == "Entregado":
                 datos_filtrados.append(fila)
                 continue
 
-        # -------------------------
         # ADMIN
-        # -------------------------
         datos_filtrados.append(fila)
 
     return headers, datos_filtrados
 
-
-# ---------------------------------------------------------
-#  REGISTRAR ACCESO (HORA DE MÉXICO)
-# ---------------------------------------------------------
+# ============================
+#  REGISTRO DE ACCESO
+# ============================
 def registrar_acceso(usuario, tipo, institucion):
     fecha_utc = datetime.utcnow()
     fecha_mex = fecha_utc - timedelta(hours=6)
     fecha = fecha_mex.strftime("%d/%m/%Y %H:%M:%S")
-    ip = request.remote_addr or "N/A"
+    ip = ip_actual()
     fila = [fecha, usuario, ip, tipo, institucion]
     escribir_registro(fila)
 
+# ============================
+#  REGISTRO DE INTENTOS FALLIDOS
+# ============================
+def registrar_intento_sheet(usuario, motivo, institucion="-"):
+    fecha_utc = datetime.utcnow()
+    fecha_mex = fecha_utc - timedelta(hours=6)
+    fecha = fecha_mex.strftime("%d/%m/%Y %H:%M:%S")
+    ip = ip_actual()
+    fila = [fecha, usuario, ip, motivo, institucion]
+    escribir_registro(fila)
 
-# ---------------------------------------------------------
+def registrar_bloqueo_permanente_sheet(ip):
+    fecha_utc = datetime.utcnow()
+    fecha_mex = fecha_utc - timedelta(hours=6)
+    fecha = fecha_mex.strftime("%d/%m/%Y %H:%M:%S")
+    fila = [fecha, "-", ip, "Bloqueo permanente", "-"]
+    escribir_registro(fila)
+
+# ============================
+#  SEGURIDAD: FUERZA BRUTA Y BLOQUEOS
+# ============================
+intentos_fallidos = {}            # ip -> [fechas]
+bloqueos_temporales = {}          # ip -> fecha_fin_bloqueo
+conteo_bloqueos_temporales = {}   # ip -> cantidad de bloqueos temporales
+bloqueos_permanentes = set()      # conjunto de IPs
+
+MAX_INTENTOS = 5
+TIEMPO_BLOQUEO = timedelta(minutes=10)
+MAX_BLOQUEOS_TEMP_PARA_PERMANENTE = 3
+
+def ip_actual():
+    # Primero intentamos X-Forwarded-For (Render/proxy), si no, remote_addr
+    xff = request.headers.get("X-Forwarded-For", "")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.remote_addr or "0.0.0.0"
+
+def verificar_bloqueo():
+    ip = ip_actual()
+    ahora = datetime.utcnow()
+
+    # Bloqueo permanente
+    if ip in bloqueos_permanentes:
+        return "permanente"
+
+    # Bloqueo temporal
+    if ip in bloqueos_temporales:
+        if ahora < bloqueos_temporales[ip]:
+            return "temporal"
+        else:
+            # Se venció el bloqueo temporal
+            del bloqueos_temporales[ip]
+
+    return None
+
+def bloquear_ip_permanente(ip):
+    if ip not in bloqueos_permanentes:
+        bloqueos_permanentes.add(ip)
+        registrar_bloqueo_permanente_sheet(ip)
+
+def registrar_intento_fallido_seguridad():
+    ip = ip_actual()
+    ahora = datetime.utcnow()
+
+    if ip not in intentos_fallidos:
+        intentos_fallidos[ip] = []
+
+    intentos_fallidos[ip].append(ahora)
+
+    # Mantener solo intentos de los últimos 10 minutos
+    intentos_fallidos[ip] = [
+        t for t in intentos_fallidos[ip]
+        if ahora - t < timedelta(minutes=10)
+    ]
+
+    # Si excede el límite → bloqueo temporal
+    if len(intentos_fallidos[ip]) >= MAX_INTENTOS:
+        bloqueos_temporales[ip] = ahora + TIEMPO_BLOQUEO
+        intentos_fallidos[ip] = []
+
+        # Contar bloqueos temporales para esta IP
+        conteo_bloqueos_temporales[ip] = conteo_bloqueos_temporales.get(ip, 0) + 1
+
+        # Si supera el máximo de bloqueos temporales → bloqueo permanente
+        if conteo_bloqueos_temporales[ip] >= MAX_BLOQUEOS_TEMP_PARA_PERMANENTE:
+            bloquear_ip_permanente(ip)
+
+# ============================
 #  LOGIN
-# ---------------------------------------------------------
+# ============================
 @app.route("/", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         usuario = request.form["usuario"]
         nip = request.form["nip"]
+
+        # Verificar si la IP ya está bloqueada
+        estado_bloqueo = verificar_bloqueo()
+        if estado_bloqueo == "permanente":
+            registrar_intento_sheet(usuario, "IP bloqueada permanentemente", "-")
+            return render_template("login.html", error="Acceso bloqueado permanentemente.")
+        elif estado_bloqueo == "temporal":
+            registrar_intento_sheet(usuario, "IP bloqueada temporalmente", "-")
+            return render_template("login.html", error="Demasiados intentos fallidos. Intenta más tarde.")
 
         directorio = leer_hoja(RANGO_DIRECTORIO)
 
@@ -205,7 +291,14 @@ def login():
                 break
 
         if not institucion:
+            # Intento fallido
+            registrar_intento_fallido_seguridad()
+            registrar_intento_sheet(usuario, "Credenciales incorrectas", "-")
             return render_template("login.html", error="Usuario o NIP incorrectos")
+
+        # Acceso exitoso → opcionalmente podrías limpiar intentos de esa IP
+        ip = ip_actual()
+        intentos_fallidos.pop(ip, None)
 
         registrar_acceso(usuario, "Administrador" if es_admin else "Usuario", institucion)
 
