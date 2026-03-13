@@ -13,6 +13,13 @@ RANGO_REPORTES = "Reportes de entrega!A:M"
 RANGO_REGISTRO = "Registro de consultas!A1"
 
 # ============================
+#  HEALTH CHECK (Render)
+# ============================
+@app.route("/health")
+def health():
+    return "OK", 200
+
+# ============================
 #  CREDENCIALES
 # ============================
 def obtener_credenciales():
@@ -63,7 +70,6 @@ def parse_fecha(fecha_str):
 
     fecha_str = str(fecha_str).strip()
 
-    # 1. Serial de Google Sheets
     if fecha_str.isdigit():
         try:
             base = datetime(1899, 12, 30)
@@ -71,7 +77,6 @@ def parse_fecha(fecha_str):
         except:
             pass
 
-    # 2. "viernes, 27 de febrero de 2026"
     meses = {
         "enero": 1, "febrero": 2, "marzo": 3, "abril": 4,
         "mayo": 5, "junio": 6, "julio": 7, "agosto": 8,
@@ -88,7 +93,6 @@ def parse_fecha(fecha_str):
         except:
             pass
 
-    # 3. Formatos comunes
     formatos = [
         "%d/%m/%Y", "%d/%m/%y",
         "%d-%m-%Y", "%d-%m-%y"
@@ -121,11 +125,10 @@ def procesar_reportes(reportes, institucion=None, es_admin=False):
         fila = list(fila)
         fila += [""] * (len(headers) - len(fila))
 
-        institucion_fila = fila[5]   # F
-        fecha_entrega = fila[11]     # L
-        estatus = fila[12]           # M
+        institucion_fila = fila[5]
+        fecha_entrega = fila[11]
+        estatus = fila[12]
 
-        # USUARIOS
         if not es_admin:
 
             if institucion_fila != institucion:
@@ -133,25 +136,20 @@ def procesar_reportes(reportes, institucion=None, es_admin=False):
 
             fecha_obj = parse_fecha(fecha_entrega)
 
-            # Pendientes → siempre
             if estatus == "Pendiente":
                 datos_filtrados.append(fila)
                 continue
 
-            # Entregados sin fecha → no
             if estatus == "Entregado" and not fecha_obj:
                 continue
 
-            # Entregados > 30 días → no
             if estatus == "Entregado" and fecha_obj < limite:
                 continue
 
-            # Entregados recientes → sí
             if estatus == "Entregado":
                 datos_filtrados.append(fila)
                 continue
 
-        # ADMIN
         datos_filtrados.append(fila)
 
     return headers, datos_filtrados
@@ -186,7 +184,7 @@ def registrar_bloqueo_permanente_sheet(ip):
     escribir_registro(fila)
 
 # ============================
-#  SEGURIDAD: FUERZA BRUTA Y BLOQUEOS
+#  SEGURIDAD
 # ============================
 intentos_fallidos = {}
 bloqueos_temporales = {}
