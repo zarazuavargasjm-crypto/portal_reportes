@@ -4,10 +4,8 @@ from datetime import datetime, timedelta
 from flask import Flask, render_template, request
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
-from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
 
 SPREADSHEET_ID = "1SIUppcNpM8nObGGPzEcLBrN50lLU9_bH-_yYZFoP_uM"
 RANGO_DIRECTORIO = "Directorio!A:E"
@@ -190,17 +188,16 @@ def registrar_bloqueo_permanente_sheet(ip):
 # ============================
 #  SEGURIDAD: FUERZA BRUTA Y BLOQUEOS
 # ============================
-intentos_fallidos = {}            # ip -> [fechas]
-bloqueos_temporales = {}          # ip -> fecha_fin_bloqueo
-conteo_bloqueos_temporales = {}   # ip -> cantidad de bloqueos temporales
-bloqueos_permanentes = set()      # conjunto de IPs
+intentos_fallidos = {}
+bloqueos_temporales = {}
+conteo_bloqueos_temporales = {}
+bloqueos_permanentes = set()
 
 MAX_INTENTOS = 5
 TIEMPO_BLOQUEO = timedelta(minutes=10)
 MAX_BLOQUEOS_TEMP_PARA_PERMANENTE = 3
 
 def ip_actual():
-    # Primero intentamos X-Forwarded-For (Render/proxy), si no, remote_addr
     xff = request.headers.get("X-Forwarded-For", "")
     if xff:
         return xff.split(",")[0].strip()
@@ -210,16 +207,13 @@ def verificar_bloqueo():
     ip = ip_actual()
     ahora = datetime.utcnow()
 
-    # Bloqueo permanente
     if ip in bloqueos_permanentes:
         return "permanente"
 
-    # Bloqueo temporal
     if ip in bloqueos_temporales:
         if ahora < bloqueos_temporales[ip]:
             return "temporal"
         else:
-            # Se venció el bloqueo temporal
             del bloqueos_temporales[ip]
 
     return None
@@ -238,21 +232,17 @@ def registrar_intento_fallido_seguridad():
 
     intentos_fallidos[ip].append(ahora)
 
-    # Mantener solo intentos de los últimos 10 minutos
     intentos_fallidos[ip] = [
         t for t in intentos_fallidos[ip]
         if ahora - t < timedelta(minutes=10)
     ]
 
-    # Si excede el límite → bloqueo temporal
     if len(intentos_fallidos[ip]) >= MAX_INTENTOS:
         bloqueos_temporales[ip] = ahora + TIEMPO_BLOQUEO
         intentos_fallidos[ip] = []
 
-        # Contar bloqueos temporales para esta IP
         conteo_bloqueos_temporales[ip] = conteo_bloqueos_temporales.get(ip, 0) + 1
 
-        # Si supera el máximo de bloqueos temporales → bloqueo permanente
         if conteo_bloqueos_temporales[ip] >= MAX_BLOQUEOS_TEMP_PARA_PERMANENTE:
             bloquear_ip_permanente(ip)
 
@@ -265,7 +255,6 @@ def login():
         usuario = request.form["usuario"]
         nip = request.form["nip"]
 
-        # Verificar si la IP ya está bloqueada
         estado_bloqueo = verificar_bloqueo()
         if estado_bloqueo == "permanente":
             registrar_intento_sheet(usuario, "IP bloqueada permanentemente", "-")
@@ -291,12 +280,10 @@ def login():
                 break
 
         if not institucion:
-            # Intento fallido
             registrar_intento_fallido_seguridad()
             registrar_intento_sheet(usuario, "Credenciales incorrectas", "-")
             return render_template("login.html", error="Usuario o NIP incorrectos")
 
-        # Acceso exitoso → opcionalmente podrías limpiar intentos de esa IP
         ip = ip_actual()
         intentos_fallidos.pop(ip, None)
 
