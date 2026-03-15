@@ -1,6 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - UAEH</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -21,17 +24,17 @@
     <div class="filters">
         <div>
             <label for="filtro-cuenta-admin">Número de cuenta:</label>
-            <input type="text" id="filtro-cuenta-admin" placeholder="Buscar por número de cuenta">
+            <input type="text" id="filtro-cuenta-admin" placeholder="Buscar cuenta...">
         </div>
 
         <div>
             <label for="filtro-folio-admin">Folio:</label>
-            <input type="text" id="filtro-folio-admin" placeholder="Buscar por folio">
+            <input type="text" id="filtro-folio-admin" placeholder="Buscar folio...">
         </div>
 
         <div>
             <label for="filtro-institucion-admin">Institución:</label>
-            <input type="text" id="filtro-institucion-admin" placeholder="Buscar institución">
+            <input type="text" id="filtro-institucion-admin" placeholder="Buscar institución...">
         </div>
 
         <div>
@@ -44,26 +47,31 @@
         </div>
 
         <div>
-            <button type="button" onclick="window.print()">Exportar a PDF</button>
+            <button type="button" onclick="window.print()" style="margin-top: 22px;">Exportar a PDF</button>
         </div>
     </div>
 
-    <table id="tabla-admin">
-        <tr>
-            {% for h in headers %}
-                <th>{{ h }}</th>
-            {% endfor %}
-        </tr>
-
-        {% for fila in datos %}
-            {% set estatus = fila[12] if fila|length > 12 else '' %}
-            <tr class="fila-dato {% if estatus == 'Entregado' %}tr-entregado{% endif %}">
-                {% for celda in fila %}
-                    <td>{{ celda }}</td>
+    <div style="overflow-x: auto; width: 100%; border-radius: 8px;">
+        <table id="tabla-admin">
+            <thead>
+                <tr>
+                    {% for h in headers %}
+                        <th>{{ h }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for fila in datos %}
+                    {% set estatus = fila[12] if fila|length > 12 else '' %}
+                    <tr class="fila-dato {% if estatus == 'Entregado' %}tr-entregado{% endif %}">
+                        {% for celda in fila %}
+                            <td>{{ celda }}</td>
+                        {% endfor %}
+                    </tr>
                 {% endfor %}
-            </tr>
-        {% endfor %}
-    </table>
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <script>
@@ -75,18 +83,19 @@
     const filtroEstatusAdmin = document.getElementById("filtro-estatus-admin");
 
     function aplicarFiltrosAdmin() {
-        const cuentaVal = filtroCuentaAdmin.value.toLowerCase();
-        const folioVal = filtroFolioAdmin.value.toLowerCase();
-        const institucionVal = filtroInstitucionAdmin.value.toLowerCase();
+        const cuentaVal = filtroCuentaAdmin.value.toLowerCase().trim();
+        const folioVal = filtroFolioAdmin.value.toLowerCase().trim();
+        const institucionVal = filtroInstitucionAdmin.value.toLowerCase().trim();
         const estatusVal = filtroEstatusAdmin.value;
 
         filasAdmin.forEach(fila => {
             const celdas = fila.querySelectorAll("td");
 
+            // Mapeo de columnas según tu estructura de Google Sheets
             const cuenta = celdas[1]?.textContent.toLowerCase() || "";
-            const folio = celdas[9]?.textContent.toLowerCase() || "";
             const institucion = celdas[5]?.textContent.toLowerCase() || "";
-            const estatus = celdas[12]?.textContent || "";
+            const folio = celdas[9]?.textContent.toLowerCase() || "";
+            const estatus = celdas[12]?.textContent.trim() || "";
 
             let visible = true;
 
@@ -99,6 +108,7 @@
         });
     }
 
+    // Eventos para filtrado en tiempo real
     filtroCuentaAdmin.addEventListener("input", aplicarFiltrosAdmin);
     filtroFolioAdmin.addEventListener("input", aplicarFiltrosAdmin);
     filtroInstitucionAdmin.addEventListener("input", aplicarFiltrosAdmin);
