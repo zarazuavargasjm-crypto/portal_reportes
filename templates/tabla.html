@@ -1,41 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="top-right"><a href="/" class="btn-logout">Cerrar sesión</a></div>
+<div class="header-uaeh">
+    <h1>Universidad Autónoma del Estado de Hidalgo</h1>
+    <h2>Dirección de Administración Escolar</h2>
+    <h3>Área de Trámites y Certificados</h3>
+</div>
+<div class="table-container">
+    <h2>Institución: {{ institucion }}</h2>
+    <div class="filters">
+        <div><label>Cuenta:</label><input type="text" id="fc" placeholder="Buscar cuenta"></div>
+        <div><label>Folio:</label><input type="text" id="ff" placeholder="Buscar folio"></div>
+        <div>
+            <label>Estatus:</label>
+            <select id="fe">
+                <option value="">Todos</option>
+                <option value="Entregado">Entregado</option>
+                <option value="Pendiente">Pendiente</option>
+            </select>
+        </div>
+    </div>
+    <div style="overflow-x: auto;">
+        <table id="t">
+            <thead>
+                <tr>{% for h in headers %}<th onclick="ordenar({{ loop.index0 }})">{{ h }}</th>{% endfor %}</tr>
+            </thead>
+            <tbody>
+                {% for fila in datos %}
+                {% set est = fila[12] if fila|length > 12 else '' %}
+                <tr class="r {% if est == 'Entregado' %}tr-entregado{% endif %}">
+                    {% for c in fila %}<td>{{ c }}</td>{% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<div class="footer-firma">Manuel Zarazúa — abril 2026</div>
 <script>
-    // Función de filtrado rápida y estable
+    const filas = Array.from(document.querySelectorAll(".r"));
     function filtrar() {
-        const cVal = document.getElementById("f-cuenta").value.toLowerCase();
-        const fVal = document.getElementById("f-folio").value.toLowerCase();
-        const eVal = document.getElementById("f-estatus").value;
-        const filas = document.querySelectorAll("#miTabla tbody tr");
-
+        const cVal = document.getElementById("fc").value.toLowerCase();
+        const fVal = document.getElementById("ff").value.toLowerCase();
+        const eVal = document.getElementById("fe").value;
+        
         filas.forEach(row => {
-            const cells = row.cells;
-            if (cells.length > 0) {
-                const cumple = cells[1].innerText.toLowerCase().includes(cVal) &&
-                               cells[9].innerText.toLowerCase().includes(fVal) &&
-                               (eVal === "" || cells[12].innerText.trim() === eVal);
-                row.style.display = cumple ? "" : "none";
-            }
+            const d = row.cells;
+            const vis = d[1].innerText.toLowerCase().includes(cVal) && 
+                        d[9].innerText.toLowerCase().includes(fVal) && 
+                        (eVal === "" || d[12].innerText.trim() === eVal);
+            row.style.display = vis ? "" : "none";
         });
     }
+    document.getElementById("fc").addEventListener("input", filtrar);
+    document.getElementById("ff").addEventListener("input", filtrar);
+    document.getElementById("fe").addEventListener("change", filtrar);
 
-    // Escuchar cambios en los inputs
-    document.getElementById("f-cuenta").addEventListener('input', filtrar);
-    document.getElementById("f-folio").addEventListener('input', filtrar);
-    document.getElementById("f-estatus").addEventListener('change', filtrar);
-
-    // Ordenamiento nativo veloz
     function ordenar(n) {
-        const table = document.getElementById("miTabla");
+        const table = document.getElementById("t");
         const tbody = table.tBodies[0];
-        const rows = Array.from(tbody.rows);
-        const dir = table.getAttribute("data-sort-dir") === "asc" ? -1 : 1;
-
-        rows.sort((a, b) => {
-            const aCol = a.cells[n].innerText.toLowerCase();
-            const bCol = b.cells[n].innerText.toLowerCase();
-            return aCol > bCol ? (1 * dir) : (-1 * dir);
-        });
-
-        table.setAttribute("data-sort-dir", dir === 1 ? "asc" : "desc");
-        rows.forEach(row => tbody.appendChild(row));
+        const rowsArr = Array.from(tbody.rows);
+        const dir = table.getAttribute("data-dir") === "asc" ? -1 : 1;
+        rowsArr.sort((a, b) => a.cells[n].innerText.toLowerCase() > b.cells[n].innerText.toLowerCase() ? (1*dir) : (-1*dir));
+        table.setAttribute("data-dir", dir === 1 ? "asc" : "desc");
+        rowsArr.forEach(r => tbody.appendChild(r));
     }
 </script>
+</body>
+</html>
