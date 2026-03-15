@@ -1,74 +1,47 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
-<div class="top-right"><a href="/" class="btn-logout">Cerrar sesión</a></div>
-<div class="header-uaeh">
-    <h1>Universidad Autónoma del Estado de Hidalgo</h1>
-    <h2>Dirección de Administración Escolar</h2>
-    <h3>Área de Trámites y Certificados</h3>
-</div>
-<div class="table-container">
-    <h2>Institución: {{ institucion }}</h2>
-    <div class="filters">
-        <div><label>Cuenta:</label><input type="text" id="f-cuenta" placeholder="Buscar cuenta"></div>
-        <div><label>Folio:</label><input type="text" id="f-folio" placeholder="Buscar folio"></div>
-        <div>
-            <label>Estatus:</label>
-            <select id="f-estatus">
-                <option value="">Todos</option>
-                <option value="Entregado">Entregado</option>
-                <option value="Pendiente">Pendiente</option>
-            </select>
-        </div>
-    </div>
-    <div style="overflow-x: auto;">
-        <table id="miTabla">
-            <thead>
-                <tr>{% for h in headers %}<th onclick="ordenar(loop.index0)">{{ h }}</th>{% endfor %}</tr>
-            </thead>
-            <tbody>
-                {% for fila in datos %}
-                {% set estatus = fila[12] if fila|length > 12 else '' %}
-                <tr class="fila-dato {% if estatus == 'Entregado' %}tr-entregado{% endif %}">
-                    {% for celda in fila %}<td>{{ celda }}</td>{% endfor %}
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-<div class="footer-firma">Manuel Zarazúa — abril 2026</div>
 <script>
-    const filas = document.querySelectorAll(".fila-dato");
-    const c = document.getElementById("f-cuenta"), f = document.getElementById("f-folio"), e = document.getElementById("f-estatus");
-    function filtrar() {
-        filas.forEach(row => {
-            const tds = row.querySelectorAll("td");
-            const vis = tds[1].innerText.toLowerCase().includes(c.value.toLowerCase()) &&
-                        tds[9].innerText.toLowerCase().includes(f.value.toLowerCase()) &&
-                        (e.value === "" || tds[12].innerText.trim() === e.value);
-            row.style.display = vis ? "" : "none";
+    // Guardamos las filas en memoria para que el acceso sea instantáneo
+    const tablaCuerpo = document.querySelector("#miTabla tbody");
+    const filasOriginales = Array.from(tablaCuerpo.querySelectorAll("tr"));
+    const inputCuenta = document.getElementById("f-cuenta");
+    const inputFolio = document.getElementById("f-folio");
+    const selectEstatus = document.getElementById("f-estatus");
+
+    function ejecutarFiltro() {
+        const cVal = inputCuenta.value.toLowerCase();
+        const fVal = inputFolio.value.toLowerCase();
+        const eVal = selectEstatus.value;
+
+        // Ocultamos la tabla un microsegundo para procesar todo junto (evita el lag visual)
+        tablaCuerpo.style.display = 'none';
+
+        filasOriginales.forEach(row => {
+            const celdas = row.cells;
+            const cumple = celdas[1].innerText.toLowerCase().includes(cVal) &&
+                           celdas[9].innerText.toLowerCase().includes(fVal) &&
+                           (eVal === "" || celdas[12].innerText.trim() === eVal);
+            row.style.display = cumple ? "" : "none";
         });
+
+        tablaCuerpo.style.display = '';
     }
-    [c,f,e].forEach(el => el.addEventListener('input', filtrar));
+
+    [inputCuenta, inputFolio, selectEstatus].forEach(el => el.addEventListener('input', ejecutarFiltro));
+
     function ordenar(n) {
-        var table = document.getElementById("miTabla"), rows, switching = true, i, x, y, shouldSwitch, dir = "asc", switchcount = 0;
-        while (switching) {
-            switching = false; rows = table.rows;
-            for (i = 1; i < (rows.length - 1); i++) {
-                shouldSwitch = false; x = rows[i].getElementsByTagName("TD")[n]; y = rows[i + 1].getElementsByTagName("TD")[n];
-                if (dir == "asc") { if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) { shouldSwitch = true; break; }
-                } else { if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) { shouldSwitch = true; break; } }
-            }
-            if (shouldSwitch) { rows[i].parentNode.insertBefore(rows[i + 1], rows[i]); switching = true; switchcount ++;
-            } else { if (switchcount == 0 && dir == "asc") { dir = "desc"; switching = true; } }
-        }
+        const filasParaOrdenar = Array.from(tablaCuerpo.querySelectorAll("tr"));
+        const esAscendente = tablaCuerpo.getAttribute("data-sort-dir") === "asc";
+        
+        filasParaOrdenar.sort((a, b) => {
+            const valA = a.cells[n].innerText.toLowerCase();
+            const valB = b.cells[n].innerText.toLowerCase();
+            return esAscendente ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        });
+
+        // Reinsertamos todas las filas de un solo golpe
+        const fragmento = document.createDocumentFragment();
+        filasParaOrdenar.forEach(fila => fragmento.appendChild(fila));
+        tablaCuerpo.appendChild(fragmento);
+        
+        tablaCuerpo.setAttribute("data-sort-dir", esAscendente ? "desc" : "asc");
     }
 </script>
-</body>
-</html>
