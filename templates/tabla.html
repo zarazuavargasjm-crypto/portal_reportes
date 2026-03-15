@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reportes - UAEH</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 
 <div class="top-right">
-    <a href="/">Cerrar sesión</a>
+    <a href="/" class="btn-logout">Cerrar sesión</a>
 </div>
 
 <div class="header-uaeh">
@@ -20,34 +19,23 @@
 
 <div class="table-container">
     <h2>Institución: {{ institucion }}</h2>
-
     <div class="filters">
-        <div>
-            <label for="filtro-cuenta">Número de cuenta:</label>
-            <input type="text" id="filtro-cuenta" placeholder="Buscar por cuenta...">
-        </div>
-        <div>
-            <label for="filtro-folio">Folio:</label>
-            <input type="text" id="filtro-folio" placeholder="Buscar por folio...">
-        </div>
+        <input type="text" id="filtro-cuenta" placeholder="Buscar por cuenta">
+        <input type="text" id="filtro-folio" placeholder="Buscar por folio">
     </div>
 
-    <div style="overflow-x: auto; width: 100%;">
+    <div style="overflow-x: auto;">
         <table id="tabla-usuario">
             <thead>
                 <tr>
-                    {% for h in headers %}
-                        <th>{{ h }}</th>
-                    {% endfor %}
+                    {% for h in headers %} <th>{{ h }}</th> {% endfor %}
                 </tr>
             </thead>
             <tbody>
                 {% for fila in datos %}
                     {% set estatus = fila[12] if fila|length > 12 else '' %}
                     <tr class="fila-dato {% if estatus == 'Entregado' %}tr-entregado{% endif %}">
-                        {% for celda in fila %}
-                            <td>{{ celda }}</td>
-                        {% endfor %}
+                        {% for celda in fila %} <td>{{ celda }}</td> {% endfor %}
                     </tr>
                 {% endfor %}
             </tbody>
@@ -55,37 +43,25 @@
     </div>
 </div>
 
+<div class="footer-firma">Manuel Zarazúa — abril 2026</div>
+
 <script>
-    const filasUsuario = document.querySelectorAll("#tabla-usuario .fila-dato");
-    const filtroCuenta = document.getElementById("filtro-cuenta");
-    const filtroFolio = document.getElementById("filtro-folio");
+    const filas = document.querySelectorAll(".fila-dato");
+    const fCuenta = document.getElementById("filtro-cuenta");
+    const fFolio = document.getElementById("filtro-folio");
 
-    function aplicarFiltrosUsuario() {
-        const cuentaVal = filtroCuenta.value.toLowerCase().trim();
-        const folioVal = filtroFolio.value.toLowerCase().trim();
-
-        filasUsuario.forEach(fila => {
-            const celdas = fila.querySelectorAll("td");
-            // Usamos textContent para mayor velocidad en el filtrado
-            const cuenta = celdas[1]?.textContent.toLowerCase() || "";
-            const folio = celdas[9]?.textContent.toLowerCase() || "";
-
-            let visible = true;
-
-            if (cuentaVal && !cuenta.includes(cuentaVal)) visible = false;
-            if (folioVal && !folio.includes(folioVal)) visible = false;
-
-            fila.style.display = visible ? "" : "none";
+    function filtrar() {
+        const cVal = fCuenta.value.toLowerCase();
+        const fVal = fFolio.value.toLowerCase();
+        filas.forEach(f => {
+            const tds = f.querySelectorAll("td");
+            const visible = (tds[1]?.textContent.toLowerCase().includes(cVal)) && (tds[9]?.textContent.toLowerCase().includes(fVal));
+            f.style.display = visible ? "" : "none";
         });
     }
-
-    filtroCuenta.addEventListener("input", aplicarFiltrosUsuario);
-    filtroFolio.addEventListener("input", aplicarFiltrosUsuario);
+    fCuenta.addEventListener("input", filtrar);
+    fFolio.addEventListener("input", filtrar);
 </script>
-
-<div class="footer-firma">
-    Manuel Zarazúa — abril 2026
-</div>
 
 </body>
 </html>
