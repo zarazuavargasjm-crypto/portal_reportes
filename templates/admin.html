@@ -6,66 +6,72 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-
-<div class="top-right">
-    <a href="/" class="btn-logout">Cerrar sesión</a>
-</div>
-
+<div class="top-right"><a href="/" class="btn-logout">Cerrar sesión</a></div>
 <div class="header-uaeh">
     <h1>Universidad Autónoma del Estado de Hidalgo</h1>
     <h2>Dirección de Administración Escolar</h2>
     <h3>Área de Trámites y Certificados</h3>
 </div>
-
 <div class="table-container">
-    <h2 style="color: #8A1538;">Panel de Administración</h2>
+    <h2>Panel Administrativo</h2>
     <div class="filters">
-        <input type="text" id="f-cuenta" placeholder="Cuenta">
-        <input type="text" id="f-folio" placeholder="Folio">
-        <input type="text" id="f-inst" placeholder="Institución">
-        <select id="f-estatus">
-            <option value="">Todos</option>
-            <option value="Entregado">Entregado</option>
-            <option value="Pendiente">Pendiente</option>
-        </select>
-        <button onclick="window.print()" style="width: auto; padding: 5px 15px;">Imprimir PDF</button>
+        <div><label>Cuenta:</label><input type="text" id="a-cuenta" placeholder="Cuenta"></div>
+        <div><label>Folio:</label><input type="text" id="a-folio" placeholder="Folio"></div>
+        <div><label>Institución:</label><input type="text" id="a-inst" placeholder="Institución"></div>
+        <div>
+            <label>Estatus:</label>
+            <select id="a-estatus">
+                <option value="">Todos</option>
+                <option value="Entregado">Entregado</option>
+                <option value="Pendiente">Pendiente</option>
+            </select>
+        </div>
+        <button onclick="window.print()" style="height: 32px; align-self: flex-end;">PDF</button>
     </div>
-
     <div style="overflow-x: auto;">
-        <table id="tabla-admin">
+        <table id="tablaAdmin">
             <thead>
-                <tr>{% for h in headers %}<th>{{ h }}</th>{% endfor %}</tr>
+                <tr>{% for h in headers %}<th onclick="ordenarAdmin(loop.index0)">{{ h }}</th>{% endfor %}</tr>
             </thead>
             <tbody>
                 {% for fila in datos %}
-                    {% set estatus = fila[12] if fila|length > 12 else '' %}
-                    <tr class="fila-dato {% if estatus == 'Entregado' %}tr-entregado{% endif %}">
-                        {% for celda in fila %}<td>{{ celda }}</td>{% endfor %}
-                    </tr>
+                {% set estatus = fila[12] if fila|length > 12 else '' %}
+                <tr class="fila-dato {% if estatus == 'Entregado' %}tr-entregado{% endif %}">
+                    {% for celda in fila %}<td>{{ celda }}</td>{% endfor %}
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
-
 <div class="footer-firma">Manuel Zarazúa — abril 2026</div>
-
 <script>
-    const filas = document.querySelectorAll(".fila-dato");
-    const c = document.getElementById("f-cuenta"), f = document.getElementById("f-folio"), i = document.getElementById("f-inst"), e = document.getElementById("f-estatus");
-
+    const rows = document.querySelectorAll(".fila-dato");
+    const ac = document.getElementById("a-cuenta"), af = document.getElementById("a-folio"), ai = document.getElementById("a-inst"), ae = document.getElementById("a-estatus");
     function filtrar() {
-        filas.forEach(row => {
-            const tds = row.querySelectorAll("td");
-            const vis = tds[1].innerText.toLowerCase().includes(c.value.toLowerCase()) &&
-                        tds[9].innerText.toLowerCase().includes(f.value.toLowerCase()) &&
-                        tds[5].innerText.toLowerCase().includes(i.value.toLowerCase()) &&
-                        (e.value === "" || tds[12].innerText.trim() === e.value);
-            row.style.display = vis ? "" : "none";
+        rows.forEach(r => {
+            const d = r.querySelectorAll("td");
+            const v = d[1].innerText.toLowerCase().includes(ac.value.toLowerCase()) &&
+                      d[9].innerText.toLowerCase().includes(af.value.toLowerCase()) &&
+                      d[5].innerText.toLowerCase().includes(ai.value.toLowerCase()) &&
+                      (ae.value === "" || d[12].innerText.trim() === ae.value);
+            r.style.display = v ? "" : "none";
         });
     }
-    [c,f,i,e].forEach(el => el.addEventListener(el.tagName==='SELECT'?'change':'input', filtrar));
+    [ac,af,ai,ae].forEach(el => el.addEventListener('input', filtrar));
+    function ordenarAdmin(n) {
+        var table = document.getElementById("tablaAdmin"), switching = true, i, x, y, shouldSwitch, dir = "asc", switchcount = 0;
+        while (switching) {
+            switching = false; var r = table.rows;
+            for (i = 1; i < (r.length - 1); i++) {
+                shouldSwitch = false; x = r[i].getElementsByTagName("TD")[n]; y = r[i + 1].getElementsByTagName("TD")[n];
+                if (dir == "asc") { if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) { shouldSwitch = true; break; }
+                } else { if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) { shouldSwitch = true; break; } }
+            }
+            if (shouldSwitch) { r[i].parentNode.insertBefore(r[i + 1], r[i]); switching = true; switchcount ++;
+            } else { if (switchcount == 0 && dir == "asc") { dir = "desc"; switching = true; } }
+        }
+    }
 </script>
-
 </body>
 </html>
