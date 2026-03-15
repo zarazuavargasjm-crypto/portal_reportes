@@ -10,7 +10,7 @@
 
 <div id="loader" class="loader-overlay" style="display:none;">
     <div class="spinner"></div>
-    <p class="loader-text">Cargando, por favor espera...</p>
+    <p class="loader-text">Cargando...</p>
 </div>
 
 <div class="header-uaeh">
@@ -20,40 +20,27 @@
 </div>
 
 <div class="login-container">
-    <h2>Acceso al Portal</h2>
-
-    {% if error %}
-        <p class="error">{{ error }}</p>
-    {% endif %}
+    <h2 style="color: #4D4D4F; text-align: center;">Acceso al Portal</h2>
+    {% if error %}<p class="error" style="text-align: center;">{{ error }}</p>{% endif %}
 
     <form method="POST">
-        <label for="usuario">Usuario</label>
-        <input name="usuario" id="usuario" placeholder="Ej. 8663" required>
+        <label>Usuario</label>
+        <input name="usuario" placeholder="Número de empleado o cuenta" required>
 
-        <label for="nip">NIP</label>
-        <input name="nip" id="nip" type="password" placeholder="Tu NIP de acceso" required>
+        <label>NIP</label>
+        <input name="nip" type="password" placeholder="Tu NIP" required>
 
-        <button type="submit">Entrar</button>
+        <button type="submit" style="background: #8A1538; color: white; border: none; padding: 12px; width: 100%; border-radius: 5px; margin-top: 20px; font-weight: bold; cursor: pointer;">Entrar</button>
     </form>
 </div>
+
+<div class="footer-firma">Manuel Zarazúa — abril 2026</div>
 
 <script>
     const form = document.querySelector("form");
     const loader = document.getElementById("loader");
-
-    form.addEventListener("submit", () => {
-        loader.style.display = "flex";
-    });
-
-    // Pequeña mejora: ocultar loader si la página tarda en cargar por red pero el usuario regresa
-    window.addEventListener("pageshow", () => {
-        loader.style.display = "none";
-    });
+    form.addEventListener("submit", () => loader.style.display = "flex");
 </script>
-
-<div class="footer-firma">
-    Manuel Zarazúa — abril 2026
-</div>
 
 </body>
 </html>
