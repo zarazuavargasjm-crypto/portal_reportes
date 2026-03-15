@@ -1,73 +1,54 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
-<div class="top-right"><a href="/" class="btn-logout">Cerrar sesión</a></div>
-<div class="header-uaeh">
-    <h1>Universidad Autónoma del Estado de Hidalgo</h1>
-    <h2>Dirección de Administración Escolar</h2>
-    <h3>Área de Trámites y Certificados</h3>
-</div>
-<div class="table-container">
-    <h2>Panel Administrativo</h2>
-    <div class="filters">
-        <div><label>Cuenta:</label><input type="text" id="ac" placeholder="Cuenta"></div>
-        <div><label>Folio:</label><input type="text" id="af" placeholder="Folio"></div>
-        <div><label>Institución:</label><input type="text" id="ai" placeholder="Institución"></div>
-        <div>
-            <label>Estatus:</label>
-            <select id="ae">
-                <option value="">Todos</option>
-                <option value="Entregado">Entregado</option>
-                <option value="Pendiente">Pendiente</option>
-            </select>
-        </div>
-        <button onclick="window.print()" style="height:32px; align-self:flex-end;">PDF</button>
-    </div>
-    <div style="overflow-x: auto;">
-        <table id="ta">
-            <thead>
-                <tr>{% for h in headers %}<th onclick="ordenarAdmin({{ loop.index0 }})">{{ h }}</th>{% endfor %}</tr>
-            </thead>
-            <tbody>
-                {% for fila in datos %}
-                {% set est = fila[12] if fila|length > 12 else '' %}
-                <tr class="ra {% if est == 'Entregado' %}tr-entregado{% endif %}">
-                    {% for c in fila %}<td>{{ c }}</td>{% endfor %}
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-<div class="footer-firma">Manuel Zarazúa — abril 2026</div>
 <script>
-    const rowsA = Array.from(document.querySelectorAll(".ra"));
-    function filtrarA() {
-        const c = document.getElementById("ac").value.toLowerCase(), f = document.getElementById("af").value.toLowerCase(),
-              i = document.getElementById("ai").value.toLowerCase(), e = document.getElementById("ae").value;
-        rowsA.forEach(row => {
-            const d = row.cells;
-            const vis = d[1].innerText.toLowerCase().includes(c) && d[9].innerText.toLowerCase().includes(f) &&
-                        d[5].innerText.toLowerCase().includes(i) && (e === "" || d[12].innerText.trim() === e);
-            row.style.display = vis ? "" : "none";
+    // CACHÉ DE DATOS ADMIN
+    const datosAdminMemoria = Array.from(document.querySelectorAll(".fila-dato")).map(row => {
+        const d = row.cells;
+        return {
+            el: row,
+            c: d[1]?.textContent.toLowerCase() || "",
+            f: d[9]?.textContent.toLowerCase() || "",
+            i: d[5]?.textContent.toLowerCase() || "",
+            e: d[12]?.textContent.trim() || ""
+        };
+    });
+
+    const ac = document.getElementById("a-cuenta");
+    const af = document.getElementById("a-folio");
+    const ai = document.getElementById("a-inst");
+    const ae = document.getElementById("a-estatus");
+
+    function filtrarAdmin() {
+        const valC = ac.value.toLowerCase();
+        const valF = af.value.toLowerCase();
+        const valI = ai.value.toLowerCase();
+        const valE = ae.value;
+
+        datosAdminMemoria.forEach(item => {
+            const vis = item.c.includes(valC) && 
+                        item.f.includes(valF) && 
+                        item.i.includes(valI) && 
+                        (valE === "" || item.e === valE);
+            item.el.style.display = vis ? "" : "none";
         });
     }
-    document.querySelectorAll(".filters input, .filters select").forEach(el => el.addEventListener("input", filtrarA));
+
+    [ac, af, ai, ae].forEach(el => {
+        const evento = el.tagName === 'SELECT' ? 'change' : 'input';
+        el.addEventListener(evento, filtrarAdmin);
+    });
 
     function ordenarAdmin(n) {
-        const table = document.getElementById("ta");
+        const table = document.getElementById("tablaAdmin");
         const tbody = table.tBodies[0];
         const rows = Array.from(tbody.rows);
         const dir = table.getAttribute("data-dir") === "asc" ? -1 : 1;
-        rows.sort((a, b) => a.cells[n].innerText.toLowerCase() > b.cells[n].innerText.toLowerCase() ? (1*dir) : (-1*dir));
+
+        rows.sort((a, b) => {
+            const vA = a.cells[n].textContent.toLowerCase();
+            const vB = b.cells[n].textContent.toLowerCase();
+            return vA > vB ? (1 * dir) : (-1 * dir);
+        });
+
         table.setAttribute("data-dir", dir === 1 ? "asc" : "desc");
         rows.forEach(r => tbody.appendChild(r));
     }
 </script>
-</body>
-</html>
