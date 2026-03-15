@@ -13,197 +13,7 @@ RANGO_REPORTES = "Reportes de entrega!A:M"
 RANGO_REGISTRO = "Registro de consultas!A1"
 
 # ============================
-#  HEALTH CHECK
-# ============================
-@app.route("/health")
-def health():
-    return "OK", 200
-
-# ============================
-#  CREDENCIALES
-# ============================
-def obtener_credenciales():
-    # Validación mejorada
-    cred_json = os.environ.get("GOOGLE_CREDENTIALS")
-    
-    if not cred_json:
-        # Esto evita que la app truene y te avisa en los logs de Vercel
-        print("CRITICAL ERROR: La variable GOOGLE_CREDENTIALS no existe en el entorno.")
-        return None
-
-    try:
-        cred_dict = json.loads(cred_json.strip())
-        creds = Credentials.from_service_account_info(
-            cred_dict,
-            scopes=[
-                "https://www.googleapis.com/auth/spreadsheets.readonly",
-                "https://www.googleapis.com/auth/spreadsheets"
-            ]
-        )
-        return creds
-    except Exception as e:
-        print(f"ERROR al procesar JSON de credenciales: {e}")
-        return None
-
-# ============================
-#  LEER HOJA
-# ============================
-def leer_hoja(rango):
-    creds = obtener_credenciales()
-    if not creds:
-        return [] # Retorna lista vacía si no hay credenciales
-    
-    try:
-        service = build("sheets", "v4", credentials=creds)
-        result = service.spreadsheets().values().get(
-            spreadsheetId=SPREADSHEET_ID,
-            range=rango
-        ).execute()
-        return result.get("values", [])
-    except Exception as e:
-        print(f"Error al leer Sheets: {e}")
-        return []
-
-# ============================
-#  ESCRIBIR REGISTRO
-# ============================
-def escribir_registro(fila):
-    creds = obtener_credenciales()
-    if not creds:
-        return
-    
-    try:
-        service = build("sheets", "v4", credentials=creds)
-        body = {"values": [fila]}
-        service.spreadsheets().values().append(
-            spreadsheetId=SPREADSHEET_ID,
-            range=RANGO_REGISTRO,
-            valueInputOption="RAW",
-            insertDataOption="INSERT_ROWS",
-            body=body
-        ).execute()
-    except Exception as e:
-        print(f"Error al escribir en Sheets: {e}")
-
-# ============================
-#  PARSEAR FECHA
-# ============================
-def parse_fecha(fecha_str):
-    if not fecha_str:
-        return None
-
-    fecha_str = str(fecha_str).strip()
-
-    if fecha_str.isdigit():
-        try:
-            base = datetime(1899, 12, 30)
-            return (base + timedelta(days=int(fecha_str))).date()
-        except:
-            pass
-
-    meses = {
-        "enero": 1, "febrero": 2, "marzo": 3, "abril": 4,
-        "mayo": 5, "junio": 6, "julio": 7, "agosto": 8,
-        "septiembre": 9, "octubre": 10, "noviembre": 11, "diciembre": 12
-    }
-
-    if "," in fecha_str and "de" in fecha_str:
-        try:
-            partes = fecha_str.split(",")[1].strip()
-            dia, _, mes_txt, _, anio = partes.split()
-            mes = meses.get(mes_txt.lower())
-            if mes:
-                return datetime(int(anio), mes, int(dia)).date()
-        except:
-            pass
-
-    formatos = [
-        "%d/%m/%Y", "%d/%m/%y",
-        "%d-%m-%Y", "%d-%m-%y"
-    ]
-
-    for fmt in formatos:
-        try:
-            return datetime.strptime(fecha_str, fmt).date()
-        except:
-            pass
-
-    return None
-
-# ============================
-#  PROCESAR REPORTES
-# ============================
-def procesar_reportes(reportes, institucion=None, es_admin=False):
-    if not reportes:
-        return [], []
-
-    headers = reportes[0]
-    filas = reportes[1:]
-
-    hoy = datetime.utcnow().date()
-    limite = hoy - timedelta(days=30)
-
-    datos_filtrados = []
-
-    for fila in filas:
-        fila = list(fila)
-        fila += [""] * (len(headers) - len(fila))
-
-        institucion_fila = fila[5]
-        fecha_entrega = fila[11]
-        estatus = fila[12]
-
-        if not es_admin:
-            if institucion_fila != institucion:
-                continue
-            
-            fecha_obj = parse_fecha(fecha_entrega)
-            if estatus == "Pendiente":
-                datos_filtrados.append(fila)
-                continue
-            if estatus == "Entregado" and not fecha_obj:
-                continue
-            if estatus == "Entregado" and fecha_obj < limite:
-                continue
-            if estatus == "Entregado":
-                datos_filtrados.append(fila)
-                continue
-        
-        datos_filtrados.append(fila)
-
-    return headers, datos_filtrados
-
-# ============================
-#  REGISTRO DE ACCESO
-# ============================
-def registrar_acceso(usuario, tipo, institucion):
-    fecha_utc = datetime.utcnow()
-    fecha_mex = fecha_utc - timedelta(hours=6)
-    fecha = fecha_mex.strftime("%d/%m/%Y %H:%M:%S")
-    ip = ip_actual()
-    fila = [fecha, usuario, ip, tipo, institucion]
-    escribir_registro(fila)
-
-# ============================
-#  REGISTRO DE INTENTOS FALLIDOS
-# ============================
-def registrar_intento_sheet(usuario, motivo, institucion="-"):
-    fecha_utc = datetime.utcnow()
-    fecha_mex = fecha_utc - timedelta(hours=6)
-    fecha = fecha_mex.strftime("%d/%m/%Y %H:%M:%S")
-    ip = ip_actual()
-    fila = [fecha, usuario, ip, motivo, institucion]
-    escribir_registro(fila)
-
-def registrar_bloqueo_permanente_sheet(ip):
-    fecha_utc = datetime.utcnow()
-    fecha_mex = fecha_utc - timedelta(hours=6)
-    fecha = fecha_mex.strftime("%d/%m/%Y %H:%M:%S")
-    fila = [fecha, "-", ip, "Bloqueo permanente", "-"]
-    escribir_registro(fila)
-
-# ============================
-#  SEGURIDAD
+#  SEGURIDAD Y BLOQUEOS (Original)
 # ============================
 intentos_fallidos = {}
 bloqueos_temporales = {}
@@ -223,93 +33,120 @@ def ip_actual():
 def verificar_bloqueo():
     ip = ip_actual()
     ahora = datetime.utcnow()
-
-    if ip in bloqueos_permanentes:
-        return "permanente"
-
+    if ip in bloqueos_permanentes: return "permanente"
     if ip in bloqueos_temporales:
-        if ahora < bloqueos_temporales[ip]:
-            return "temporal"
-        else:
-            del bloqueos_temporales[ip]
-
+        if ahora < bloqueos_temporales[ip]: return "temporal"
+        else: del bloqueos_temporales[ip]
     return None
 
-def bloquear_ip_permanente(ip):
-    if ip not in bloqueos_permanentes:
-        bloqueos_permanentes.add(ip)
-        registrar_bloqueo_permanente_sheet(ip)
+# ============================
+#  CREDENCIALES Y GOOGLE SHEETS
+# ============================
+def obtener_credenciales():
+    cred_json = os.environ.get("GOOGLE_CREDENTIALS")
+    if not cred_json:
+        print("CRITICAL: No se encontró la variable GOOGLE_CREDENTIALS")
+        return None
+    try:
+        cred_dict = json.loads(cred_json.strip())
+        return Credentials.from_service_account_info(
+            cred_dict,
+            scopes=["https://www.googleapis.com/auth/spreadsheets"]
+        )
+    except Exception as e:
+        print(f"Error en credenciales: {e}")
+        return None
 
-def registrar_intento_fallido_seguridad():
-    ip = ip_actual()
-    ahora = datetime.utcnow()
+def leer_hoja(rango):
+    creds = obtener_credenciales()
+    if not creds: return []
+    try:
+        service = build("sheets", "v4", credentials=creds)
+        result = service.spreadsheets().values().get(spreadsheetId=SPREADSHEET_ID, range=rango).execute()
+        return result.get("values", [])
+    except: return []
 
-    if ip not in intentos_fallidos:
-        intentos_fallidos[ip] = []
-
-    intentos_fallidos[ip].append(ahora)
-    intentos_fallidos[ip] = [
-        t for t in intentos_fallidos[ip]
-        if ahora - t < timedelta(minutes=10)
-    ]
-
-    if len(intentos_fallidos[ip]) >= MAX_INTENTOS:
-        bloqueos_temporales[ip] = ahora + TIEMPO_BLOQUEO
-        intentos_fallidos[ip] = []
-        conteo_bloqueos_temporales[ip] = conteo_bloqueos_temporales.get(ip, 0) + 1
-        if conteo_bloqueos_temporales[ip] >= MAX_BLOQUEOS_TEMP_PARA_PERMANENTE:
-            bloquear_ip_permanente(ip)
+def escribir_registro(fila):
+    creds = obtener_credenciales()
+    if not creds: return
+    try:
+        service = build("sheets", "v4", credentials=creds)
+        body = {"values": [fila]}
+        service.spreadsheets().values().append(
+            spreadsheetId=SPREADSHEET_ID, range=RANGO_REGISTRO,
+            valueInputOption="RAW", insertDataOption="INSERT_ROWS", body=body
+        ).execute()
+    except: pass
 
 # ============================
-#  LOGIN
+#  LOGS DE SEGURIDAD
+# ============================
+def registrar_evento(usuario, motivo, institucion="-"):
+    fecha = (datetime.utcnow() - timedelta(hours=6)).strftime("%d/%m/%Y %H:%M:%S")
+    fila = [fecha, usuario, ip_actual(), motivo, institucion]
+    escribir_registro(fila)
+
+# ============================
+#  RUTAS
 # ============================
 @app.route("/", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         usuario = request.form["usuario"]
         nip = request.form["nip"]
+        ip = ip_actual()
 
-        estado_bloqueo = verificar_bloqueo()
-        if estado_bloqueo == "permanente":
-            registrar_intento_sheet(usuario, "IP bloqueada permanentemente", "-")
-            return render_template("login.html", error="Acceso bloqueado permanentemente.")
-        elif estado_bloqueo == "temporal":
-            registrar_intento_sheet(usuario, "IP bloqueada temporalmente", "-")
-            return render_template("login.html", error="Demasiados intentos fallidos. Intenta más tarde.")
+        # Verificar si la IP está bloqueada
+        estado = verificar_bloqueo()
+        if estado:
+            registrar_evento(usuario, f"Intento desde IP bloqueada ({estado})")
+            return render_template("login.html", error=f"Acceso restringido: Bloqueo {estado}.")
 
         directorio = leer_hoja(RANGO_DIRECTORIO)
-        if not directorio:
-            return render_template("login.html", error="Error de conexión con la base de datos.")
-
         institucion = None
         es_admin = False
 
         for fila in directorio[1:]:
-            if len(fila) < 5:
-                continue
-
+            if len(fila) < 5: continue
             escuela, _, _, user, password = fila
             if usuario == user and nip == password:
                 institucion = escuela
                 es_admin = (escuela == "Administrador")
                 break
 
-        if not institucion:
-            registrar_intento_fallido_seguridad()
-            registrar_intento_sheet(usuario, "Credenciales incorrectas", "-")
+        if institucion:
+            # Login exitoso
+            intentos_fallidos.pop(ip, None)
+            registrar_evento(usuario, "Inicio de sesión exitoso", institucion)
+            
+            reportes = leer_hoja(RANGO_REPORTES)
+            headers = reportes[0] if reportes else []
+            filas = reportes[1:] if reportes else []
+
+            if es_admin:
+                return render_template("admin.html", headers=headers, datos=filas)
+            
+            datos_usuario = [f for f in filas if len(f) > 5 and f[5] == institucion]
+            return render_template("tabla.html", institucion=institucion, headers=headers, datos=datos_usuario)
+        
+        else:
+            # Fallo de seguridad: Registrar intento
+            ahora = datetime.utcnow()
+            intentos_fallidos[ip] = intentos_fallidos.get(ip, []) + [ahora]
+            # Limpiar intentos viejos
+            intentos_fallidos[ip] = [t for t in intentos_fallidos[ip] if ahora - t < timedelta(minutes=10)]
+            
+            if len(intentos_fallidos[ip]) >= MAX_INTENTOS:
+                bloqueos_temporales[ip] = ahora + TIEMPO_BLOQUEO
+                conteo_bloqueos_temporales[ip] = conteo_bloqueos_temporales.get(ip, 0) + 1
+                if conteo_bloqueos_temporales[ip] >= MAX_BLOQUEOS_TEMP_PARA_PERMANENTE:
+                    bloqueos_permanentes.add(ip)
+                    registrar_evento(usuario, "BLOQUEO PERMANENTE GENERADO")
+                else:
+                    registrar_evento(usuario, "Bloqueo temporal generado")
+            
+            registrar_evento(usuario, "Credenciales incorrectas")
             return render_template("login.html", error="Usuario o NIP incorrectos")
-
-        ip = ip_actual()
-        intentos_fallidos.pop(ip, None)
-        registrar_acceso(usuario, "Administrador" if es_admin else "Usuario", institucion)
-
-        reportes = leer_hoja(RANGO_REPORTES)
-        if es_admin:
-            headers, datos = procesar_reportes(reportes, es_admin=True)
-            return render_template("admin.html", headers=headers, datos=datos)
-
-        headers, datos = procesar_reportes(reportes, institucion=institucion, es_admin=False)
-        return render_template("tabla.html", institucion=institucion, headers=headers, datos=datos)
 
     return render_template("login.html")
 
