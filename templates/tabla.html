@@ -6,62 +6,69 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-
-<div class="top-right">
-    <a href="/" class="btn-logout">Cerrar sesión</a>
-</div>
-
+<div class="top-right"><a href="/" class="btn-logout">Cerrar sesión</a></div>
 <div class="header-uaeh">
     <h1>Universidad Autónoma del Estado de Hidalgo</h1>
     <h2>Dirección de Administración Escolar</h2>
     <h3>Área de Trámites y Certificados</h3>
 </div>
-
 <div class="table-container">
     <h2>Institución: {{ institucion }}</h2>
     <div class="filters">
-        <input type="text" id="filtro-cuenta" placeholder="Buscar por cuenta">
-        <input type="text" id="filtro-folio" placeholder="Buscar por folio">
+        <div><label>Cuenta:</label><input type="text" id="f-cuenta" placeholder="Buscar cuenta"></div>
+        <div><label>Folio:</label><input type="text" id="f-folio" placeholder="Buscar folio"></div>
+        <div>
+            <label>Estatus:</label>
+            <select id="f-estatus">
+                <option value="">Todos</option>
+                <option value="Entregado">Entregado</option>
+                <option value="Pendiente">Pendiente</option>
+            </select>
+        </div>
     </div>
-
     <div style="overflow-x: auto;">
-        <table id="tabla-usuario">
+        <table id="miTabla">
             <thead>
-                <tr>
-                    {% for h in headers %} <th>{{ h }}</th> {% endfor %}
-                </tr>
+                <tr>{% for h in headers %}<th onclick="ordenar(loop.index0)">{{ h }}</th>{% endfor %}</tr>
             </thead>
             <tbody>
                 {% for fila in datos %}
-                    {% set estatus = fila[12] if fila|length > 12 else '' %}
-                    <tr class="fila-dato {% if estatus == 'Entregado' %}tr-entregado{% endif %}">
-                        {% for celda in fila %} <td>{{ celda }}</td> {% endfor %}
-                    </tr>
+                {% set estatus = fila[12] if fila|length > 12 else '' %}
+                <tr class="fila-dato {% if estatus == 'Entregado' %}tr-entregado{% endif %}">
+                    {% for celda in fila %}<td>{{ celda }}</td>{% endfor %}
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
-
 <div class="footer-firma">Manuel Zarazúa — abril 2026</div>
-
 <script>
     const filas = document.querySelectorAll(".fila-dato");
-    const fCuenta = document.getElementById("filtro-cuenta");
-    const fFolio = document.getElementById("filtro-folio");
-
+    const c = document.getElementById("f-cuenta"), f = document.getElementById("f-folio"), e = document.getElementById("f-estatus");
     function filtrar() {
-        const cVal = fCuenta.value.toLowerCase();
-        const fVal = fFolio.value.toLowerCase();
-        filas.forEach(f => {
-            const tds = f.querySelectorAll("td");
-            const visible = (tds[1]?.textContent.toLowerCase().includes(cVal)) && (tds[9]?.textContent.toLowerCase().includes(fVal));
-            f.style.display = visible ? "" : "none";
+        filas.forEach(row => {
+            const tds = row.querySelectorAll("td");
+            const vis = tds[1].innerText.toLowerCase().includes(c.value.toLowerCase()) &&
+                        tds[9].innerText.toLowerCase().includes(f.value.toLowerCase()) &&
+                        (e.value === "" || tds[12].innerText.trim() === e.value);
+            row.style.display = vis ? "" : "none";
         });
     }
-    fCuenta.addEventListener("input", filtrar);
-    fFolio.addEventListener("input", filtrar);
+    [c,f,e].forEach(el => el.addEventListener('input', filtrar));
+    function ordenar(n) {
+        var table = document.getElementById("miTabla"), rows, switching = true, i, x, y, shouldSwitch, dir = "asc", switchcount = 0;
+        while (switching) {
+            switching = false; rows = table.rows;
+            for (i = 1; i < (rows.length - 1); i++) {
+                shouldSwitch = false; x = rows[i].getElementsByTagName("TD")[n]; y = rows[i + 1].getElementsByTagName("TD")[n];
+                if (dir == "asc") { if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) { shouldSwitch = true; break; }
+                } else { if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) { shouldSwitch = true; break; } }
+            }
+            if (shouldSwitch) { rows[i].parentNode.insertBefore(rows[i + 1], rows[i]); switching = true; switchcount ++;
+            } else { if (switchcount == 0 && dir == "asc") { dir = "desc"; switching = true; } }
+        }
+    }
 </script>
-
 </body>
 </html>
