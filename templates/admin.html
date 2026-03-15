@@ -1,41 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="top-right"><a href="/" class="btn-logout">Cerrar sesión</a></div>
+<div class="header-uaeh">
+    <h1>Universidad Autónoma del Estado de Hidalgo</h1>
+    <h2>Dirección de Administración Escolar</h2>
+    <h3>Área de Trámites y Certificados</h3>
+</div>
+<div class="table-container">
+    <h2>Panel Administrativo</h2>
+    <div class="filters">
+        <div><label>Cuenta:</label><input type="text" id="ac" placeholder="Cuenta"></div>
+        <div><label>Folio:</label><input type="text" id="af" placeholder="Folio"></div>
+        <div><label>Institución:</label><input type="text" id="ai" placeholder="Institución"></div>
+        <div>
+            <label>Estatus:</label>
+            <select id="ae">
+                <option value="">Todos</option>
+                <option value="Entregado">Entregado</option>
+                <option value="Pendiente">Pendiente</option>
+            </select>
+        </div>
+        <button onclick="window.print()" style="height:32px; align-self:flex-end;">PDF</button>
+    </div>
+    <div style="overflow-x: auto;">
+        <table id="ta">
+            <thead>
+                <tr>{% for h in headers %}<th onclick="ordenarAdmin({{ loop.index0 }})">{{ h }}</th>{% endfor %}</tr>
+            </thead>
+            <tbody>
+                {% for fila in datos %}
+                {% set est = fila[12] if fila|length > 12 else '' %}
+                <tr class="ra {% if est == 'Entregado' %}tr-entregado{% endif %}">
+                    {% for c in fila %}<td>{{ c }}</td>{% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<div class="footer-firma">Manuel Zarazúa — abril 2026</div>
 <script>
-    function ejecutarFiltroAdmin() {
-        const valC = document.getElementById("a-cuenta").value.toLowerCase();
-        const valF = document.getElementById("a-folio").value.toLowerCase();
-        const valI = document.getElementById("a-inst").value.toLowerCase();
-        const valE = document.getElementById("a-estatus").value;
-        const filas = document.querySelectorAll("#tablaAdmin tbody tr");
-
-        filas.forEach(r => {
-            const d = r.cells;
-            if (d.length > 0) {
-                const cumple = d[1].innerText.toLowerCase().includes(valC) &&
-                               d[9].innerText.toLowerCase().includes(valF) &&
-                               d[5].innerText.toLowerCase().includes(valI) &&
-                               (valE === "" || d[12].innerText.trim() === valE);
-                r.style.display = cumple ? "" : "none";
-            }
+    const rowsA = Array.from(document.querySelectorAll(".ra"));
+    function filtrarA() {
+        const c = document.getElementById("ac").value.toLowerCase(), f = document.getElementById("af").value.toLowerCase(),
+              i = document.getElementById("ai").value.toLowerCase(), e = document.getElementById("ae").value;
+        rowsA.forEach(row => {
+            const d = row.cells;
+            const vis = d[1].innerText.toLowerCase().includes(c) && d[9].innerText.toLowerCase().includes(f) &&
+                        d[5].innerText.toLowerCase().includes(i) && (e === "" || d[12].innerText.trim() === e);
+            row.style.display = vis ? "" : "none";
         });
     }
-
-    document.getElementById("a-cuenta").addEventListener('input', ejecutarFiltroAdmin);
-    document.getElementById("a-folio").addEventListener('input', ejecutarFiltroAdmin);
-    document.getElementById("a-inst").addEventListener('input', ejecutarFiltroAdmin);
-    document.getElementById("a-estatus").addEventListener('change', ejecutarFiltroAdmin);
+    document.querySelectorAll(".filters input, .filters select").forEach(el => el.addEventListener("input", filtrarA));
 
     function ordenarAdmin(n) {
-        const table = document.getElementById("tablaAdmin");
+        const table = document.getElementById("ta");
         const tbody = table.tBodies[0];
         const rows = Array.from(tbody.rows);
-        const dir = table.getAttribute("data-sort-dir") === "asc" ? -1 : 1;
-
-        rows.sort((a, b) => {
-            const aCol = a.cells[n].innerText.toLowerCase();
-            const bCol = b.cells[n].innerText.toLowerCase();
-            return aCol > bCol ? (1 * dir) : (-1 * dir);
-        });
-
-        table.setAttribute("data-sort-dir", dir === 1 ? "asc" : "desc");
-        rows.forEach(row => tbody.appendChild(row));
+        const dir = table.getAttribute("data-dir") === "asc" ? -1 : 1;
+        rows.sort((a, b) => a.cells[n].innerText.toLowerCase() > b.cells[n].innerText.toLowerCase() ? (1*dir) : (-1*dir));
+        table.setAttribute("data-dir", dir === 1 ? "asc" : "desc");
+        rows.forEach(r => tbody.appendChild(r));
     }
 </script>
+</body>
+</html>
