@@ -1,47 +1,41 @@
 <script>
-    // Guardamos las filas en memoria para que el acceso sea instantáneo
-    const tablaCuerpo = document.querySelector("#miTabla tbody");
-    const filasOriginales = Array.from(tablaCuerpo.querySelectorAll("tr"));
-    const inputCuenta = document.getElementById("f-cuenta");
-    const inputFolio = document.getElementById("f-folio");
-    const selectEstatus = document.getElementById("f-estatus");
+    // Función de filtrado rápida y estable
+    function filtrar() {
+        const cVal = document.getElementById("f-cuenta").value.toLowerCase();
+        const fVal = document.getElementById("f-folio").value.toLowerCase();
+        const eVal = document.getElementById("f-estatus").value;
+        const filas = document.querySelectorAll("#miTabla tbody tr");
 
-    function ejecutarFiltro() {
-        const cVal = inputCuenta.value.toLowerCase();
-        const fVal = inputFolio.value.toLowerCase();
-        const eVal = selectEstatus.value;
-
-        // Ocultamos la tabla un microsegundo para procesar todo junto (evita el lag visual)
-        tablaCuerpo.style.display = 'none';
-
-        filasOriginales.forEach(row => {
-            const celdas = row.cells;
-            const cumple = celdas[1].innerText.toLowerCase().includes(cVal) &&
-                           celdas[9].innerText.toLowerCase().includes(fVal) &&
-                           (eVal === "" || celdas[12].innerText.trim() === eVal);
-            row.style.display = cumple ? "" : "none";
+        filas.forEach(row => {
+            const cells = row.cells;
+            if (cells.length > 0) {
+                const cumple = cells[1].innerText.toLowerCase().includes(cVal) &&
+                               cells[9].innerText.toLowerCase().includes(fVal) &&
+                               (eVal === "" || cells[12].innerText.trim() === eVal);
+                row.style.display = cumple ? "" : "none";
+            }
         });
-
-        tablaCuerpo.style.display = '';
     }
 
-    [inputCuenta, inputFolio, selectEstatus].forEach(el => el.addEventListener('input', ejecutarFiltro));
+    // Escuchar cambios en los inputs
+    document.getElementById("f-cuenta").addEventListener('input', filtrar);
+    document.getElementById("f-folio").addEventListener('input', filtrar);
+    document.getElementById("f-estatus").addEventListener('change', filtrar);
 
+    // Ordenamiento nativo veloz
     function ordenar(n) {
-        const filasParaOrdenar = Array.from(tablaCuerpo.querySelectorAll("tr"));
-        const esAscendente = tablaCuerpo.getAttribute("data-sort-dir") === "asc";
-        
-        filasParaOrdenar.sort((a, b) => {
-            const valA = a.cells[n].innerText.toLowerCase();
-            const valB = b.cells[n].innerText.toLowerCase();
-            return esAscendente ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        const table = document.getElementById("miTabla");
+        const tbody = table.tBodies[0];
+        const rows = Array.from(tbody.rows);
+        const dir = table.getAttribute("data-sort-dir") === "asc" ? -1 : 1;
+
+        rows.sort((a, b) => {
+            const aCol = a.cells[n].innerText.toLowerCase();
+            const bCol = b.cells[n].innerText.toLowerCase();
+            return aCol > bCol ? (1 * dir) : (-1 * dir);
         });
 
-        // Reinsertamos todas las filas de un solo golpe
-        const fragmento = document.createDocumentFragment();
-        filasParaOrdenar.forEach(fila => fragmento.appendChild(fila));
-        tablaCuerpo.appendChild(fragmento);
-        
-        tablaCuerpo.setAttribute("data-sort-dir", esAscendente ? "desc" : "asc");
+        table.setAttribute("data-sort-dir", dir === 1 ? "asc" : "desc");
+        rows.forEach(row => tbody.appendChild(row));
     }
 </script>
