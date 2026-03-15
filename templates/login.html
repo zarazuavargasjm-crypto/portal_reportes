@@ -3,24 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso al Portal - UAEH</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+
+<div id="loader" class="loader-overlay" style="display:none;">
+    <div class="spinner"></div>
+    <p class="loader-text">Cargando, por favor espera...</p>
+</div>
+
 <div class="header-uaeh">
     <h1>Universidad Autónoma del Estado de Hidalgo</h1>
     <h2>Dirección de Administración Escolar</h2>
     <h3>Área de Trámites y Certificados</h3>
 </div>
+
 <div class="login-container">
-    <h2 style="text-align: center;">Acceso al Portal</h2>
+    <h2>Acceso al Portal</h2>
+
+    {% if error %}
+        <p class="error">{{ error }}</p>
+    {% endif %}
+
     <form method="POST">
         <label>Usuario</label>
         <input name="usuario" placeholder="Tu usuario" required>
+
         <label>NIP</label>
         <input name="nip" type="password" placeholder="Tu NIP" required>
-        <button type="submit" style="background: #8A1538; color: white; border: none; padding: 12px; width: 100%; border-radius: 5px; margin-top: 20px; font-weight: bold; cursor: pointer;">Entrar</button>
+
+        <button type="submit">Entrar</button>
     </form>
 </div>
-<div class="footer-firma">Manuel Zarazúa — abril 2026</div>
+
+<script>
+    const form = document.querySelector("form");
+    const loader = document.getElementById("loader");
+
+    form.addEventListener("submit", () => {
+        loader.style.display = "flex";
+    });
+</script>
+
+<div class="footer-firma">
+    Manuel Zarazúa — abril 2026
+</div>
+
 </body>
 </html>
