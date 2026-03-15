@@ -1,6 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reportes - UAEH</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -21,30 +24,35 @@
     <div class="filters">
         <div>
             <label for="filtro-cuenta">Número de cuenta:</label>
-            <input type="text" id="filtro-cuenta" placeholder="Buscar por número de cuenta">
+            <input type="text" id="filtro-cuenta" placeholder="Buscar por cuenta...">
         </div>
         <div>
             <label for="filtro-folio">Folio:</label>
-            <input type="text" id="filtro-folio" placeholder="Buscar por folio">
+            <input type="text" id="filtro-folio" placeholder="Buscar por folio...">
         </div>
     </div>
 
-    <table id="tabla-usuario">
-        <tr>
-            {% for h in headers %}
-                <th>{{ h }}</th>
-            {% endfor %}
-        </tr>
-
-        {% for fila in datos %}
-            {% set estatus = fila[12] if fila|length > 12 else '' %}
-            <tr class="fila-dato {% if estatus == 'Entregado' %}tr-entregado{% endif %}">
-                {% for celda in fila %}
-                    <td>{{ celda }}</td>
+    <div style="overflow-x: auto; width: 100%;">
+        <table id="tabla-usuario">
+            <thead>
+                <tr>
+                    {% for h in headers %}
+                        <th>{{ h }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for fila in datos %}
+                    {% set estatus = fila[12] if fila|length > 12 else '' %}
+                    <tr class="fila-dato {% if estatus == 'Entregado' %}tr-entregado{% endif %}">
+                        {% for celda in fila %}
+                            <td>{{ celda }}</td>
+                        {% endfor %}
+                    </tr>
                 {% endfor %}
-            </tr>
-        {% endfor %}
-    </table>
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <script>
@@ -53,11 +61,12 @@
     const filtroFolio = document.getElementById("filtro-folio");
 
     function aplicarFiltrosUsuario() {
-        const cuentaVal = filtroCuenta.value.toLowerCase();
-        const folioVal = filtroFolio.value.toLowerCase();
+        const cuentaVal = filtroCuenta.value.toLowerCase().trim();
+        const folioVal = filtroFolio.value.toLowerCase().trim();
 
         filasUsuario.forEach(fila => {
             const celdas = fila.querySelectorAll("td");
+            // Usamos textContent para mayor velocidad en el filtrado
             const cuenta = celdas[1]?.textContent.toLowerCase() || "";
             const folio = celdas[9]?.textContent.toLowerCase() || "";
 
