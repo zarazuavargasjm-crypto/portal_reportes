@@ -6,40 +6,19 @@ body {
     box-sizing: border-box;
 }
 
-/* Encabezado institucional - Ajuste de separación */
+/* Encabezado institucional */
 .header-uaeh {
     text-align: center;
     margin-bottom: 25px;
     color: #4D4D4F;
 }
 
-.header-uaeh h1 {
-    margin: 0;
-    font-size: clamp(18px, 5vw, 24px);
-    color: #8A1538;
-    font-weight: bold;
-}
+.header-uaeh h1 { margin: 0; font-size: 24px; color: #8A1538; font-weight: bold; }
+.header-uaeh h2 { margin: 2px 0 0 0; font-size: 18px; font-weight: 600; }
+.header-uaeh h3 { margin: 0; font-size: 16px; font-weight: 500; }
 
-.header-uaeh h2 {
-    margin: 2px 0 0 0; /* Espaciado reducido */
-    font-size: clamp(14px, 4vw, 18px);
-    font-weight: 600;
-}
-
-.header-uaeh h3 {
-    margin: 0; /* Sin separación extra */
-    font-size: clamp(12px, 3.5vw, 16px);
-    font-weight: 500;
-}
-
-/* Botón cerrar sesión (Recuperado como botón) */
-.top-right {
-    position: fixed;
-    top: 15px;
-    right: 20px;
-    z-index: 10000;
-}
-
+/* Botón cerrar sesión original */
+.top-right { position: fixed; top: 15px; right: 20px; z-index: 10000; }
 .btn-logout {
     background: #8A1538;
     color: white !important;
@@ -49,95 +28,41 @@ body {
     font-weight: 600;
     font-size: 13px;
     display: inline-block;
-    border: none;
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
-.btn-logout:hover {
-    background: #6b0f2b;
-}
-
-/* Contenedor login */
-.login-container {
-    max-width: 400px;
-    width: 90%;
-    margin: 0 auto;
-    background: white;
-    padding: 25px;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    box-sizing: border-box;
-}
-
-/* Inputs con el estilo limpio original */
-input, select {
-    width: 100%;
-    padding: 10px;
-    margin-top: 5px;
-    border-radius: 4px;
-    border: 1px solid #ccc;
-    box-sizing: border-box;
-}
-
-/* Contenedor tablas */
-.table-container {
-    max-width: 100%;
-    overflow-x: auto;
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
+/* Filtros en una sola fila */
 .filters {
     margin-bottom: 15px;
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: row; /* Fuerza una sola fila */
+    flex-wrap: nowrap;   /* Evita que se bajen los elementos */
     gap: 10px;
+    align-items: flex-end;
+    overflow-x: auto;    /* Si son muchos filtros, permite deslizarlos */
+    padding-bottom: 5px;
 }
 
-/* Tablas y Estatus Entregado (Verde) */
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
-    font-size: 14px;
-}
+.filters div { flex: 0 0 auto; }
+.filters label { display: block; font-size: 12px; margin-bottom: 3px; font-weight: bold; }
+.filters input, .filters select { padding: 6px; border-radius: 4px; border: 1px solid #ccc; font-size: 13px; }
 
-th, td {
-    border: 1px solid #ddd;
-    padding: 10px;
-}
+/* Tablas */
+.table-container { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+th { background: #8A1538; color: white; cursor: pointer; position: relative; }
+th:hover { background: #6b0f2b; }
 
-th {
-    background: #8A1538;
-    color: white;
-    text-align: left;
-}
+.tr-entregado { background-color: #e6f4ea !important; }
 
-/* REGLA CRÍTICA: Fila verde para entregados */
-.tr-entregado {
-    background-color: #e6f4ea !important;
-}
-
-/* Footer elegante original */
+/* Footer */
 .footer-firma {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    text-align: center;
-    font-size: 12px;
-    color: rgba(108, 117, 125, 0.75);
-    padding: 8px 0;
-    background: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(4px);
-    z-index: 9999;
+    position: fixed; bottom: 0; left: 0; width: 100%; text-align: center;
+    font-size: 12px; color: rgba(108, 117, 125, 0.75); padding: 8px 0;
+    background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(4px); z-index: 9999;
 }
 
-@media (max-width: 600px) {
-    body { padding: 10px; }
-    .header-uaeh { margin-top: 45px; }
-    .top-right { right: 10px; top: 10px; }
-    .filters { flex-direction: column; }
+@media (max-width: 800px) {
+    .filters { flex-wrap: wrap; } /* Solo en pantallas muy chicas se dividen */
 }
