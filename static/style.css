@@ -1,13 +1,12 @@
-/* Estilos base ajustados */
 body {
     font-family: Arial, sans-serif;
     background: #F2F2F2;
-    padding: 20px; /* Reducido de 40px para ganar espacio */
+    padding: 20px;
     margin: 0;
-    box-sizing: border-box; /* Asegura que el padding no desborde */
+    box-sizing: border-box;
 }
 
-/* Encabezado institucional ajustable */
+/* Encabezado institucional - Ajuste de separación */
 .header-uaeh {
     text-align: center;
     margin-bottom: 25px;
@@ -16,39 +15,52 @@ body {
 
 .header-uaeh h1 {
     margin: 0;
-    font-size: clamp(18px, 5vw, 24px); /* Ajuste fluido de fuente */
+    font-size: clamp(18px, 5vw, 24px);
     color: #8A1538;
     font-weight: bold;
 }
 
 .header-uaeh h2 {
-    margin: 5px 0 0 0;
+    margin: 2px 0 0 0; /* Espaciado reducido */
     font-size: clamp(14px, 4vw, 18px);
     font-weight: 600;
 }
 
-/* Botón cerrar sesión ajustable */
+.header-uaeh h3 {
+    margin: 0; /* Sin separación extra */
+    font-size: clamp(12px, 3.5vw, 16px);
+    font-weight: 500;
+}
+
+/* Botón cerrar sesión (Recuperado como botón) */
 .top-right {
     position: fixed;
-    top: 10px;
-    right: 10px; /* Ajustado para que no se pegue tanto */
+    top: 15px;
+    right: 20px;
     z-index: 10000;
 }
 
-/* Ajustes en Inputs para que no se desborden */
-input, select {
-    width: 100%;
-    padding: 10px;
-    margin-top: 5px;
+.btn-logout {
+    background: #8A1538;
+    color: white !important;
+    text-decoration: none;
+    padding: 8px 16px;
     border-radius: 4px;
-    border: 1px solid #ccc;
-    box-sizing: border-box; /* CLAVE: evita que el input se salga del cuadro */
+    font-weight: 600;
+    font-size: 13px;
+    display: inline-block;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
-/* Contenedor login responsivo */
+.btn-logout:hover {
+    background: #6b0f2b;
+}
+
+/* Contenedor login */
 .login-container {
     max-width: 400px;
-    width: 95%; /* Se adapta a pantallas pequeñas */
+    width: 90%;
     margin: 0 auto;
     background: white;
     padding: 25px;
@@ -57,81 +69,75 @@ input, select {
     box-sizing: border-box;
 }
 
-/* Contenedor tablas mejorado para móvil */
-.table-container {
-    max-width: 100%;
-    overflow-x: auto; /* Permite deslizar la tabla hacia los lados en celular */
-    background: white;
-    padding: 15px;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    -webkit-overflow-scrolling: touch; /* Suavidad al deslizar en iPhone */
+/* Inputs con el estilo limpio original */
+input, select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
 }
 
-/* Filtros en una sola fila o varias según espacio */
+/* Contenedor tablas */
+.table-container {
+    max-width: 100%;
+    overflow-x: auto;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
 .filters {
     margin-bottom: 15px;
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
-    align-items: center;
 }
 
-.filters label {
-    margin-top: 0;
-    font-size: 13px;
-    width: auto;
-}
-
-.filters input, .filters select {
-    width: auto; /* Permite que los filtros no ocupen todo el ancho si hay espacio */
-    min-width: 150px;
-}
-
-/* Tablas */
+/* Tablas y Estatus Entregado (Verde) */
 table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 15px;
-    font-size: 13px; /* Un poco más pequeña para ganar espacio */
+    font-size: 14px;
 }
 
 th, td {
     border: 1px solid #ddd;
-    padding: 10px 8px;
-    white-space: nowrap; /* Evita que el texto se amontone en varias líneas */
+    padding: 10px;
 }
 
-/* ==========================================
-   MEDIA QUERIES (Ajustes para Celulares)
-   ========================================== */
+th {
+    background: #8A1538;
+    color: white;
+    text-align: left;
+}
+
+/* REGLA CRÍTICA: Fila verde para entregados */
+.tr-entregado {
+    background-color: #e6f4ea !important;
+}
+
+/* Footer elegante original */
+.footer-firma {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    font-size: 12px;
+    color: rgba(108, 117, 125, 0.75);
+    padding: 8px 0;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+}
+
 @media (max-width: 600px) {
-    body {
-        padding: 10px; /* Margen mínimo en el celular */
-    }
-
-    .header-uaeh {
-        margin-top: 40px; /* Espacio para que el botón de cerrar sesión no estorbe */
-    }
-
-    .top-right {
-        right: 5px;
-        top: 5px;
-    }
-
-    .top-right button, .top-right a {
-        padding: 6px 10px;
-        font-size: 11px;
-    }
-
-    .filters {
-        flex-direction: column; /* Filtros uno debajo del otro en celular */
-        align-items: stretch;
-    }
-
-    .filters input, .filters select {
-        width: 100%; /* Filtros a lo ancho total en móvil */
-    }
+    body { padding: 10px; }
+    .header-uaeh { margin-top: 45px; }
+    .top-right { right: 10px; top: 10px; }
+    .filters { flex-direction: column; }
 }
-
-/* (El resto de tus estilos de Footer, Spinner y tr-entregado se mantienen igual) */
