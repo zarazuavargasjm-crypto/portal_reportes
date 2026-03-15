@@ -1,47 +1,41 @@
 <script>
-    const cuerpoAdmin = document.querySelector("#tablaAdmin tbody");
-    const filasAdmin = Array.from(cuerpoAdmin.querySelectorAll("tr"));
-    const ac = document.getElementById("a-cuenta"), 
-          af = document.getElementById("a-folio"), 
-          ai = document.getElementById("a-inst"), 
-          ae = document.getElementById("a-estatus");
-
     function ejecutarFiltroAdmin() {
-        const valC = ac.value.toLowerCase();
-        const valF = af.value.toLowerCase();
-        const valI = ai.value.toLowerCase();
-        const valE = ae.value;
+        const valC = document.getElementById("a-cuenta").value.toLowerCase();
+        const valF = document.getElementById("a-folio").value.toLowerCase();
+        const valI = document.getElementById("a-inst").value.toLowerCase();
+        const valE = document.getElementById("a-estatus").value;
+        const filas = document.querySelectorAll("#tablaAdmin tbody tr");
 
-        cuerpoAdmin.style.display = 'none';
-
-        filasAdmin.forEach(r => {
+        filas.forEach(r => {
             const d = r.cells;
-            const cumple = d[1].innerText.toLowerCase().includes(valC) &&
-                           d[9].innerText.toLowerCase().includes(valF) &&
-                           d[5].innerText.toLowerCase().includes(valI) &&
-                           (valE === "" || d[12].innerText.trim() === valE);
-            r.style.display = cumple ? "" : "none";
+            if (d.length > 0) {
+                const cumple = d[1].innerText.toLowerCase().includes(valC) &&
+                               d[9].innerText.toLowerCase().includes(valF) &&
+                               d[5].innerText.toLowerCase().includes(valI) &&
+                               (valE === "" || d[12].innerText.trim() === valE);
+                r.style.display = cumple ? "" : "none";
+            }
         });
-
-        cuerpoAdmin.style.display = '';
     }
 
-    [ac, af, ai, ae].forEach(el => el.addEventListener('input', ejecutarFiltroAdmin));
+    document.getElementById("a-cuenta").addEventListener('input', ejecutarFiltroAdmin);
+    document.getElementById("a-folio").addEventListener('input', ejecutarFiltroAdmin);
+    document.getElementById("a-inst").addEventListener('input', ejecutarFiltroAdmin);
+    document.getElementById("a-estatus").addEventListener('change', ejecutarFiltroAdmin);
 
     function ordenarAdmin(n) {
-        const filas = Array.from(cuerpoAdmin.querySelectorAll("tr"));
-        const esAsc = cuerpoAdmin.getAttribute("data-sort-dir") === "asc";
+        const table = document.getElementById("tablaAdmin");
+        const tbody = table.tBodies[0];
+        const rows = Array.from(tbody.rows);
+        const dir = table.getAttribute("data-sort-dir") === "asc" ? -1 : 1;
 
-        filas.sort((a, b) => {
-            const valA = a.cells[n].innerText.toLowerCase();
-            const valB = b.cells[n].innerText.toLowerCase();
-            return esAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        rows.sort((a, b) => {
+            const aCol = a.cells[n].innerText.toLowerCase();
+            const bCol = b.cells[n].innerText.toLowerCase();
+            return aCol > bCol ? (1 * dir) : (-1 * dir);
         });
 
-        const frag = document.createDocumentFragment();
-        filas.forEach(f => frag.appendChild(f));
-        cuerpoAdmin.appendChild(frag);
-
-        cuerpoAdmin.setAttribute("data-sort-dir", esAsc ? "desc" : "asc");
+        table.setAttribute("data-sort-dir", dir === 1 ? "asc" : "desc");
+        rows.forEach(row => tbody.appendChild(row));
     }
 </script>
