@@ -13,7 +13,7 @@ RANGO_REPORTES = "Reportes de entrega!A:M"
 RANGO_REGISTRO = "Registro de consultas!A1"
 
 # ============================
-#  HEALTH CHECK (Render)
+#  HEALTH CHECK
 # ============================
 @app.route("/health")
 def health():
@@ -23,43 +23,67 @@ def health():
 #  CREDENCIALES
 # ============================
 def obtener_credenciales():
+    # Validación mejorada
     cred_json = os.environ.get("GOOGLE_CREDENTIALS")
-    cred_dict = json.loads(cred_json.strip())
-    creds = Credentials.from_service_account_info(
-        cred_dict,
-        scopes=[
-            "https://www.googleapis.com/auth/spreadsheets.readonly",
-            "https://www.googleapis.com/auth/spreadsheets"
-        ]
-    )
-    return creds
+    
+    if not cred_json:
+        # Esto evita que la app truene y te avisa en los logs de Vercel
+        print("CRITICAL ERROR: La variable GOOGLE_CREDENTIALS no existe en el entorno.")
+        return None
+
+    try:
+        cred_dict = json.loads(cred_json.strip())
+        creds = Credentials.from_service_account_info(
+            cred_dict,
+            scopes=[
+                "https://www.googleapis.com/auth/spreadsheets.readonly",
+                "https://www.googleapis.com/auth/spreadsheets"
+            ]
+        )
+        return creds
+    except Exception as e:
+        print(f"ERROR al procesar JSON de credenciales: {e}")
+        return None
 
 # ============================
 #  LEER HOJA
 # ============================
 def leer_hoja(rango):
     creds = obtener_credenciales()
-    service = build("sheets", "v4", credentials=creds)
-    result = service.spreadsheets().values().get(
-        spreadsheetId=SPREADSHEET_ID,
-        range=rango
-    ).execute()
-    return result.get("values", [])
+    if not creds:
+        return [] # Retorna lista vacía si no hay credenciales
+    
+    try:
+        service = build("sheets", "v4", credentials=creds)
+        result = service.spreadsheets().values().get(
+            spreadsheetId=SPREADSHEET_ID,
+            range=rango
+        ).execute()
+        return result.get("values", [])
+    except Exception as e:
+        print(f"Error al leer Sheets: {e}")
+        return []
 
 # ============================
 #  ESCRIBIR REGISTRO
 # ============================
 def escribir_registro(fila):
     creds = obtener_credenciales()
-    service = build("sheets", "v4", credentials=creds)
-    body = {"values": [fila]}
-    service.spreadsheets().values().append(
-        spreadsheetId=SPREADSHEET_ID,
-        range=RANGO_REGISTRO,
-        valueInputOption="RAW",
-        insertDataOption="INSERT_ROWS",
-        body=body
-    ).execute()
+    if not creds:
+        return
+    
+    try:
+        service = build("sheets", "v4", credentials=creds)
+        body = {"values": [fila]}
+        service.spreadsheets().values().append(
+            spreadsheetId=SPREADSHEET_ID,
+            range=RANGO_REGISTRO,
+            valueInputOption="RAW",
+            insertDataOption="INSERT_ROWS",
+            body=body
+        ).execute()
+    except Exception as e:
+        print(f"Error al escribir en Sheets: {e}")
 
 # ============================
 #  PARSEAR FECHA
@@ -130,26 +154,21 @@ def procesar_reportes(reportes, institucion=None, es_admin=False):
         estatus = fila[12]
 
         if not es_admin:
-
             if institucion_fila != institucion:
                 continue
-
+            
             fecha_obj = parse_fecha(fecha_entrega)
-
             if estatus == "Pendiente":
                 datos_filtrados.append(fila)
                 continue
-
             if estatus == "Entregado" and not fecha_obj:
                 continue
-
             if estatus == "Entregado" and fecha_obj < limite:
                 continue
-
             if estatus == "Entregado":
                 datos_filtrados.append(fila)
                 continue
-
+        
         datos_filtrados.append(fila)
 
     return headers, datos_filtrados
@@ -229,7 +248,6 @@ def registrar_intento_fallido_seguridad():
         intentos_fallidos[ip] = []
 
     intentos_fallidos[ip].append(ahora)
-
     intentos_fallidos[ip] = [
         t for t in intentos_fallidos[ip]
         if ahora - t < timedelta(minutes=10)
@@ -238,9 +256,7 @@ def registrar_intento_fallido_seguridad():
     if len(intentos_fallidos[ip]) >= MAX_INTENTOS:
         bloqueos_temporales[ip] = ahora + TIEMPO_BLOQUEO
         intentos_fallidos[ip] = []
-
         conteo_bloqueos_temporales[ip] = conteo_bloqueos_temporales.get(ip, 0) + 1
-
         if conteo_bloqueos_temporales[ip] >= MAX_BLOQUEOS_TEMP_PARA_PERMANENTE:
             bloquear_ip_permanente(ip)
 
@@ -262,6 +278,8 @@ def login():
             return render_template("login.html", error="Demasiados intentos fallidos. Intenta más tarde.")
 
         directorio = leer_hoja(RANGO_DIRECTORIO)
+        if not directorio:
+            return render_template("login.html", error="Error de conexión con la base de datos.")
 
         institucion = None
         es_admin = False
@@ -271,7 +289,6 @@ def login():
                 continue
 
             escuela, _, _, user, password = fila
-
             if usuario == user and nip == password:
                 institucion = escuela
                 es_admin = (escuela == "Administrador")
@@ -284,11 +301,9 @@ def login():
 
         ip = ip_actual()
         intentos_fallidos.pop(ip, None)
-
         registrar_acceso(usuario, "Administrador" if es_admin else "Usuario", institucion)
 
         reportes = leer_hoja(RANGO_REPORTES)
-
         if es_admin:
             headers, datos = procesar_reportes(reportes, es_admin=True)
             return render_template("admin.html", headers=headers, datos=datos)
@@ -297,3 +312,6 @@ def login():
         return render_template("tabla.html", institucion=institucion, headers=headers, datos=datos)
 
     return render_template("login.html")
+
+if __name__ == "__main__":
+    app.run()
