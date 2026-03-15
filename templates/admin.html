@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Administración - UAEH</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 
 <div class="top-right">
-    <a href="/">Cerrar sesión</a>
+    <a href="/" class="btn-logout">Cerrar sesión</a>
 </div>
 
 <div class="header-uaeh">
@@ -19,54 +18,29 @@
 </div>
 
 <div class="table-container">
-    <h2>Panel de Administración</h2>
-
+    <h2 style="color: #8A1538;">Panel de Administración</h2>
     <div class="filters">
-        <div>
-            <label for="filtro-cuenta-admin">Número de cuenta:</label>
-            <input type="text" id="filtro-cuenta-admin" placeholder="Buscar cuenta...">
-        </div>
-
-        <div>
-            <label for="filtro-folio-admin">Folio:</label>
-            <input type="text" id="filtro-folio-admin" placeholder="Buscar folio...">
-        </div>
-
-        <div>
-            <label for="filtro-institucion-admin">Institución:</label>
-            <input type="text" id="filtro-institucion-admin" placeholder="Buscar institución...">
-        </div>
-
-        <div>
-            <label for="filtro-estatus-admin">Estatus:</label>
-            <select id="filtro-estatus-admin">
-                <option value="">Todos</option>
-                <option value="Entregado">Entregado</option>
-                <option value="Pendiente">Pendiente</option>
-            </select>
-        </div>
-
-        <div>
-            <button type="button" onclick="window.print()" style="margin-top: 22px;">Exportar a PDF</button>
-        </div>
+        <input type="text" id="f-cuenta" placeholder="Cuenta">
+        <input type="text" id="f-folio" placeholder="Folio">
+        <input type="text" id="f-inst" placeholder="Institución">
+        <select id="f-estatus">
+            <option value="">Todos</option>
+            <option value="Entregado">Entregado</option>
+            <option value="Pendiente">Pendiente</option>
+        </select>
+        <button onclick="window.print()" style="width: auto; padding: 5px 15px;">Imprimir PDF</button>
     </div>
 
-    <div style="overflow-x: auto; width: 100%; border-radius: 8px;">
+    <div style="overflow-x: auto;">
         <table id="tabla-admin">
             <thead>
-                <tr>
-                    {% for h in headers %}
-                        <th>{{ h }}</th>
-                    {% endfor %}
-                </tr>
+                <tr>{% for h in headers %}<th>{{ h }}</th>{% endfor %}</tr>
             </thead>
             <tbody>
                 {% for fila in datos %}
                     {% set estatus = fila[12] if fila|length > 12 else '' %}
                     <tr class="fila-dato {% if estatus == 'Entregado' %}tr-entregado{% endif %}">
-                        {% for celda in fila %}
-                            <td>{{ celda }}</td>
-                        {% endfor %}
+                        {% for celda in fila %}<td>{{ celda }}</td>{% endfor %}
                     </tr>
                 {% endfor %}
             </tbody>
@@ -74,50 +48,24 @@
     </div>
 </div>
 
+<div class="footer-firma">Manuel Zarazúa — abril 2026</div>
+
 <script>
-    const filasAdmin = document.querySelectorAll("#tabla-admin .fila-dato");
+    const filas = document.querySelectorAll(".fila-dato");
+    const c = document.getElementById("f-cuenta"), f = document.getElementById("f-folio"), i = document.getElementById("f-inst"), e = document.getElementById("f-estatus");
 
-    const filtroCuentaAdmin = document.getElementById("filtro-cuenta-admin");
-    const filtroFolioAdmin = document.getElementById("filtro-folio-admin");
-    const filtroInstitucionAdmin = document.getElementById("filtro-institucion-admin");
-    const filtroEstatusAdmin = document.getElementById("filtro-estatus-admin");
-
-    function aplicarFiltrosAdmin() {
-        const cuentaVal = filtroCuentaAdmin.value.toLowerCase().trim();
-        const folioVal = filtroFolioAdmin.value.toLowerCase().trim();
-        const institucionVal = filtroInstitucionAdmin.value.toLowerCase().trim();
-        const estatusVal = filtroEstatusAdmin.value;
-
-        filasAdmin.forEach(fila => {
-            const celdas = fila.querySelectorAll("td");
-
-            // Mapeo de columnas según tu estructura de Google Sheets
-            const cuenta = celdas[1]?.textContent.toLowerCase() || "";
-            const institucion = celdas[5]?.textContent.toLowerCase() || "";
-            const folio = celdas[9]?.textContent.toLowerCase() || "";
-            const estatus = celdas[12]?.textContent.trim() || "";
-
-            let visible = true;
-
-            if (cuentaVal && !cuenta.includes(cuentaVal)) visible = false;
-            if (folioVal && !folio.includes(folioVal)) visible = false;
-            if (institucionVal && !institucion.includes(institucionVal)) visible = false;
-            if (estatusVal && estatus !== estatusVal) visible = false;
-
-            fila.style.display = visible ? "" : "none";
+    function filtrar() {
+        filas.forEach(row => {
+            const tds = row.querySelectorAll("td");
+            const vis = tds[1].innerText.toLowerCase().includes(c.value.toLowerCase()) &&
+                        tds[9].innerText.toLowerCase().includes(f.value.toLowerCase()) &&
+                        tds[5].innerText.toLowerCase().includes(i.value.toLowerCase()) &&
+                        (e.value === "" || tds[12].innerText.trim() === e.value);
+            row.style.display = vis ? "" : "none";
         });
     }
-
-    // Eventos para filtrado en tiempo real
-    filtroCuentaAdmin.addEventListener("input", aplicarFiltrosAdmin);
-    filtroFolioAdmin.addEventListener("input", aplicarFiltrosAdmin);
-    filtroInstitucionAdmin.addEventListener("input", aplicarFiltrosAdmin);
-    filtroEstatusAdmin.addEventListener("change", aplicarFiltrosAdmin);
+    [c,f,i,e].forEach(el => el.addEventListener(el.tagName==='SELECT'?'change':'input', filtrar));
 </script>
-
-<div class="footer-firma">
-    Manuel Zarazúa — abril 2026
-</div>
 
 </body>
 </html>
