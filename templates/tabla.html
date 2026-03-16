@@ -1,52 +1,62 @@
 <script>
-    // CACHÉ DE DATOS: Cargamos la información en memoria una sola vez al iniciar
-    const datosMemoria = Array.from(document.querySelectorAll(".fila-dato")).map(row => {
-        const celdas = row.cells;
-        return {
-            elemento: row,
-            cuenta: celdas[1]?.textContent.toLowerCase() || "",
-            folio: celdas[9]?.textContent.toLowerCase() || "",
-            estatus: celdas[12]?.textContent.trim() || ""
-        };
+    // Inicializamos el caché de datos SOLO cuando el DOM está listo
+    document.addEventListener("DOMContentLoaded", () => {
+        const filas = document.querySelectorAll(".fila-dato");
+        const datosMemoria = Array.from(filas).map(row => {
+            const celdas = row.cells;
+            return {
+                elemento: row,
+                cuenta: celdas[1]?.textContent.toLowerCase() || "",
+                folio: celdas[9]?.textContent.toLowerCase() || "",
+                estatus: celdas[12]?.textContent.trim() || ""
+            };
+        });
+
+        const inputCuenta = document.getElementById("f-cuenta");
+        const inputFolio = document.getElementById("f-folio");
+        const selectEstatus = document.getElementById("f-estatus");
+
+        // Función de filtro optimizada con debounce para evitar bloqueos
+        let timerFiltro;
+        function ejecutarFiltro() {
+            clearTimeout(timerFiltro);
+            timerFiltro = setTimeout(() => {
+                const cVal = inputCuenta.value.toLowerCase();
+                const fVal = inputFolio.value.toLowerCase();
+                const eVal = selectEstatus.value;
+
+                datosMemoria.forEach(item => {
+                    const cumple = item.cuenta.includes(cVal) && 
+                                   item.folio.includes(fVal) && 
+                                   (eVal === "" || item.estatus === eVal);
+                    item.elemento.style.display = cumple ? "" : "none";
+                });
+            }, 150); // pequeño retraso para suavizar la búsqueda
+        }
+
+        // Escuchadores de eventos
+        inputCuenta.addEventListener("input", ejecutarFiltro);
+        inputFolio.addEventListener("input", ejecutarFiltro);
+        selectEstatus.addEventListener("change", ejecutarFiltro);
+
+        // Ordenamiento nativo optimizado
+        function ordenar(n) {
+            const table = document.getElementById("miTabla");
+            const tbody = table.tBodies[0];
+            const rowsArr = Array.from(tbody.rows);
+            const dir = table.getAttribute("data-dir") === "asc" ? -1 : 1;
+            
+            rowsArr.sort((a, b) => {
+                const vA = a.cells[n].textContent.toLowerCase();
+                const vB = b.cells[n].textContent.toLowerCase();
+                return vA.localeCompare(vB) * dir;
+            });
+
+            table.setAttribute("data-dir", dir === 1 ? "asc" : "desc");
+            rowsArr.forEach(r => tbody.appendChild(r));
+        }
+
+        // Exponemos ordenar para usarlo desde el HTML
+        window.ordenar = ordenar;
     });
-
-    const inputCuenta = document.getElementById("f-cuenta");
-    const inputFolio = document.getElementById("f-folio");
-    const selectEstatus = document.getElementById("f-estatus");
-
-    function ejecutarFiltro() {
-        const cVal = inputCuenta.value.toLowerCase();
-        const fVal = inputFolio.value.toLowerCase();
-        const eVal = selectEstatus.value;
-
-        // Búsqueda instantánea sobre la lista en memoria
-        datosMemoria.forEach(item => {
-            const cumple = item.cuenta.includes(cVal) && 
-                           item.folio.includes(fVal) && 
-                           (eVal === "" || item.estatus === eVal);
-            item.elemento.style.display = cumple ? "" : "none";
-        });
-    }
-
-    // Escuchadores de eventos
-    inputCuenta.addEventListener("input", ejecutarFiltro);
-    inputFolio.addEventListener("input", ejecutarFiltro);
-    selectEstatus.addEventListener("change", ejecutarFiltro);
-
-    // Ordenamiento nativo (mucho más rápido que el método de burbuja)
-    function ordenar(n) {
-        const table = document.getElementById("miTabla");
-        const tbody = table.tBodies[0];
-        const rowsArr = Array.from(tbody.rows);
-        const dir = table.getAttribute("data-dir") === "asc" ? -1 : 1;
-        
-        rowsArr.sort((a, b) => {
-            const vA = a.cells[n].textContent.toLowerCase();
-            const vB = b.cells[n].textContent.toLowerCase();
-            return vA > vB ? (1 * dir) : (-1 * dir);
-        });
-
-        table.setAttribute("data-dir", dir === 1 ? "asc" : "desc");
-        rowsArr.forEach(r => tbody.appendChild(r));
-    }
 </script>
