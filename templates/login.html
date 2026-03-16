@@ -14,7 +14,7 @@
 <div class="login-container">
     <h2>Acceso al Portal</h2>
     {% if error %}<p style="color:red; text-align:center;">{{ error }}</p>{% endif %}
-    <form method="POST">
+    <form method="POST" action="/">
         <label>Usuario</label>
         <input name="usuario" placeholder="Tu usuario" required>
         <label>NIP</label>
