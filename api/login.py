@@ -5,8 +5,8 @@ from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from jinja2 import Environment, FileSystemLoader
 
-# Cargar templates
-env = Environment(loader=FileSystemLoader("templates"))
+# Cargar templates desde /api/templates
+env = Environment(loader=FileSystemLoader("api/templates"))
 
 SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID")
 RANGO_DIRECTORIO = "Directorio!A:E"
