@@ -5,9 +5,8 @@ from flask import Flask, render_template, request
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 
-app = Flask(__name__, static_folder="../static", template_folder="../templates")
+app = Flask(__name__)
 
-# SECRET KEY
 app.secret_key = os.environ.get("SECRET_KEY", "clave-segura")
 
 SPREADSHEET_ID = "1SIUppcNpM8nObGGPzEcLBrN50lLU9_bH-_yYZFoP_uM"
@@ -45,7 +44,6 @@ def verificar_bloqueo():
 def obtener_credenciales():
     cred_json = os.environ.get("GOOGLE_CREDENTIALS")
     if not cred_json:
-        print("GOOGLE_CREDENTIALS no definido")
         return None
     try:
         cred_dict = json.loads(cred_json.strip())
@@ -53,14 +51,12 @@ def obtener_credenciales():
             cred_dict,
             scopes=["https://www.googleapis.com/auth/spreadsheets"]
         )
-    except Exception as e:
-        print("Error cargando credenciales:", e)
+    except:
         return None
 
 def leer_hoja(rango):
     creds = obtener_credenciales()
     if not creds:
-        print("Sin credenciales, leer_hoja regresa []")
         return []
     try:
         service = build("sheets", "v4", credentials=creds)
@@ -68,17 +64,13 @@ def leer_hoja(rango):
             spreadsheetId=SPREADSHEET_ID,
             range=rango
         ).execute()
-        values = result.get("values", [])
-        print(f"leer_hoja({rango}) -> {len(values)} filas")
-        return values
-    except Exception as e:
-        print("Error leyendo hoja:", e)
+        return result.get("values", [])
+    except:
         return []
 
 def escribir_registro(fila):
     creds = obtener_credenciales()
     if not creds:
-        print("Sin credenciales, no se escribe registro")
         return
     try:
         service = build("sheets", "v4", credentials=creds)
@@ -90,8 +82,8 @@ def escribir_registro(fila):
             insertDataOption="INSERT_ROWS",
             body=body
         ).execute()
-    except Exception as e:
-        print("Error escribiendo registro:", e)
+    except:
+        pass
 
 def registrar_evento(usuario, motivo, institucion="-"):
     fecha = (datetime.utcnow() - timedelta(hours=6)).strftime("%d/%m/%Y %H:%M:%S")
@@ -100,12 +92,10 @@ def registrar_evento(usuario, motivo, institucion="-"):
 
 @app.route("/", methods=["GET", "POST"])
 def login():
-    print("Ruta / llamada, método:", request.method)
     if request.method == "POST":
-        usuario = request.form.get("usuario", "")
-        nip = request.form.get("nip", "")
+        usuario = request.form["usuario"]
+        nip = request.form["nip"]
         ip = ip_actual()
-        print("Intento login de:", usuario, "IP:", ip)
 
         estado = verificar_bloqueo()
         if estado:
@@ -113,28 +103,24 @@ def login():
             return render_template("login.html", error=f"Acceso restringido: Bloqueo {estado}.")
 
         directorio = leer_hoja(RANGO_DIRECTORIO)
-        print("DIRECTORIO:", directorio[:3])
-
         institucion = None
         es_admin = False
 
-        if len(directorio) > 1:
-            for fila in directorio[1:]:
-                if len(fila) < 5:
-                    continue
-                escuela, _, _, user, password = fila
-                if usuario == user and nip == password:
-                    institucion = escuela
-                    es_admin = (escuela == "Administrador")
-                    break
+        for fila in directorio[1:]:
+            if len(fila) < 5:
+                continue
+            escuela, _, _, user, password = fila
+            if usuario == user and nip == password:
+                institucion = escuela
+                es_admin = (escuela == "Administrador")
+                break
 
         if institucion:
+            ahora = datetime.utcnow()
             intentos_fallidos.pop(ip, None)
             registrar_evento(usuario, "Inicio de sesión exitoso", institucion)
 
             reportes = leer_hoja(RANGO_REPORTES)
-            print("REPORTES primeras filas:", reportes[:3])
-
             headers = reportes[0] if reportes else []
             filas = reportes[1:] if reportes else []
 
@@ -156,4 +142,22 @@ def login():
         else:
             ahora = datetime.utcnow()
             intentos_fallidos[ip] = [
-                t for t in intent
+                t for t in intentos_fallidos.get(ip, [])
+                if ahora - t < timedelta(minutes=10)
+            ] + [ahora]
+
+            if len(intentos_fallidos[ip]) >= MAX_INTENTOS:
+                bloqueos_temporales[ip] = ahora + TIEMPO_BLOQUEO
+                conteo_bloqueos_temporales[ip] = conteo_bloqueos_temporales.get(ip, 0) + 1
+
+                if conteo_bloqueos_temporales[ip] >= MAX_BLOQUEOS_TEMP_PARA_PERMANENTE:
+                    bloqueos_permanentes.add(ip)
+                    registrar_evento(usuario, "BLOQUEO PERMANENTE")
+
+            registrar_evento(usuario, "Credenciales incorrectas")
+            return render_template("login.html", error="Usuario o NIP incorrectos")
+
+    return render_template("login.html")
+
+if __name__ == "__main__":
+    app.run()
