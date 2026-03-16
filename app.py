@@ -8,7 +8,7 @@ from googleapiclient.discovery import build
 app = Flask(__name__)
 
 # 🔐 SECRET KEY (única línea agregada, necesaria para Flask en Vercel)
-app.secret_key = os.environ.get("260790", "clave-segura")
+app.secret_key = os.environ.get("SECRET_KEY", "clave-segura")
 
 SPREADSHEET_ID = "1SIUppcNpM8nObGGPzEcLBrN50lLU9_bH-_yYZFoP_uM"
 RANGO_DIRECTORIO = "Directorio!A:E"
@@ -101,6 +101,10 @@ def login():
             return render_template("login.html", error=f"Acceso restringido: Bloqueo {estado}.")
 
         directorio = leer_hoja(RANGO_DIRECTORIO)
+
+        # 🔍 DIAGNÓSTICO: ¿Google Sheets está regresando datos?
+        print("DIRECTORIO:", directorio)
+
         institucion = None
         es_admin = False
 
@@ -117,6 +121,10 @@ def login():
             registrar_evento(usuario, "Inicio de sesión exitoso", institucion)
 
             reportes = leer_hoja(RANGO_REPORTES)
+
+            # 🔍 DIAGNÓSTICO: ¿Google Sheets está regresando reportes?
+            print("REPORTES:", reportes)
+
             headers = reportes[0] if reportes else []
             filas = reportes[1:] if reportes else []
 
