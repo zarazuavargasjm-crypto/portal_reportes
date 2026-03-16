@@ -7,7 +7,7 @@ from googleapiclient.discovery import build
 
 app = Flask(__name__)
 
-# SECRET_KEY desde variables de entorno (para sesiones seguras en producción)
+# 🔐 SECRET KEY (única línea agregada, necesaria para Flask en Vercel)
 app.secret_key = os.environ.get("SECRET_KEY", "clave-segura")
 
 SPREADSHEET_ID = "1SIUppcNpM8nObGGPzEcLBrN50lLU9_bH-_yYZFoP_uM"
@@ -47,17 +47,25 @@ def obtener_credenciales():
     if not cred_json: return None
     try:
         cred_dict = json.loads(cred_json.strip())
-        return Credentials.from_service_account_info(cred_dict, scopes=["https://www.googleapis.com/auth/spreadsheets"])
-    except: return None
+        return Credentials.from_service_account_info(
+            cred_dict,
+            scopes=["https://www.googleapis.com/auth/spreadsheets"]
+        )
+    except:
+        return None
 
 def leer_hoja(rango):
     creds = obtener_credenciales()
     if not creds: return []
     try:
         service = build("sheets", "v4", credentials=creds)
-        result = service.spreadsheets().values().get(spreadsheetId=SPREADSHEET_ID, range=rango).execute()
+        result = service.spreadsheets().values().get(
+            spreadsheetId=SPREADSHEET_ID,
+            range=rango
+        ).execute()
         return result.get("values", [])
-    except: return []
+    except:
+        return []
 
 def escribir_registro(fila):
     creds = obtener_credenciales()
@@ -72,7 +80,8 @@ def escribir_registro(fila):
             insertDataOption="INSERT_ROWS",
             body=body
         ).execute()
-    except: pass
+    except:
+        pass
 
 def registrar_evento(usuario, motivo, institucion="-"):
     fecha = (datetime.utcnow() - timedelta(hours=6)).strftime("%d/%m/%Y %H:%M:%S")
@@ -85,6 +94,7 @@ def login():
         usuario = request.form["usuario"]
         nip = request.form["nip"]
         ip = ip_actual()
+
         estado = verificar_bloqueo()
         if estado:
             registrar_evento(usuario, f"Intento desde IP bloqueada ({estado})")
@@ -93,6 +103,7 @@ def login():
         directorio = leer_hoja(RANGO_DIRECTORIO)
         institucion = None
         es_admin = False
+
         for fila in directorio[1:]:
             if len(fila) < 5: continue
             escuela, _, _, user, password = fila
@@ -104,24 +115,44 @@ def login():
         if institucion:
             intentos_fallidos.pop(ip, None)
             registrar_evento(usuario, "Inicio de sesión exitoso", institucion)
+
             reportes = leer_hoja(RANGO_REPORTES)
             headers = reportes[0] if reportes else []
             filas = reportes[1:] if reportes else []
+
             if es_admin:
                 return render_template("admin.html", headers=headers, datos=filas)
-            datos_usuario = [f for f in filas if len(f) > 5 and f[5] == institucion]
-            return render_template("tabla.html", institucion=institucion, headers=headers, datos=datos_usuario)
+
+            datos_usuario = [
+                f for f in filas
+                if len(f) > 5 and f[5] == institucion
+            ]
+
+            return render_template(
+                "tabla.html",
+                institucion=institucion,
+                headers=headers,
+                datos=datos_usuario
+            )
+
         else:
             ahora = datetime.utcnow()
-            intentos_fallidos[ip] = [t for t in intentos_fallidos.get(ip, []) if ahora - t < timedelta(minutes=10)] + [ahora]
+            intentos_fallidos[ip] = [
+                t for t in intentos_fallidos.get(ip, [])
+                if ahora - t < timedelta(minutes=10)
+            ] + [ahora]
+
             if len(intentos_fallidos[ip]) >= MAX_INTENTOS:
                 bloqueos_temporales[ip] = ahora + TIEMPO_BLOQUEO
                 conteo_bloqueos_temporales[ip] = conteo_bloqueos_temporales.get(ip, 0) + 1
+
                 if conteo_bloqueos_temporales[ip] >= MAX_BLOQUEOS_TEMP_PARA_PERMANENTE:
                     bloqueos_permanentes.add(ip)
                     registrar_evento(usuario, "BLOQUEO PERMANENTE")
+
             registrar_evento(usuario, "Credenciales incorrectas")
             return render_template("login.html", error="Usuario o NIP incorrectos")
+
     return render_template("login.html")
 
 if __name__ == "__main__":
