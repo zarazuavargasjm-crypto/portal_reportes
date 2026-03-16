@@ -7,7 +7,7 @@ from googleapiclient.discovery import build
 
 app = Flask(__name__)
 
-SPREADSHEET_ID = "1SIUppcNpM8nObGGPzEcLBrN50lLU9_bH-_yYZFoP_uM"
+SSPREADSHEET_ID = os.environ.get("SPREADSHEET_ID")
 RANGO_DIRECTORIO = "Directorio!A:E"
 RANGO_REPORTES = "Reportes de entrega!A:M"
 RANGO_REGISTRO = "Registro de consultas!A1"
