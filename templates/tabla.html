@@ -2,61 +2,65 @@
     // Inicializamos el caché de datos SOLO cuando el DOM está listo
     document.addEventListener("DOMContentLoaded", () => {
         const filas = document.querySelectorAll(".fila-dato");
-        const datosMemoria = Array.from(filas).map(row => {
-            const celdas = row.cells;
+        const datosAdminMemoria = Array.from(filas).map(row => {
+            const d = row.cells;
             return {
-                elemento: row,
-                cuenta: celdas[1]?.textContent.toLowerCase() || "",
-                folio: celdas[9]?.textContent.toLowerCase() || "",
-                estatus: celdas[12]?.textContent.trim() || ""
+                el: row,
+                c: d[1]?.textContent.toLowerCase() || "",
+                f: d[9]?.textContent.toLowerCase() || "",
+                i: d[5]?.textContent.toLowerCase() || "",
+                e: d[12]?.textContent.trim() || ""
             };
         });
 
-        const inputCuenta = document.getElementById("f-cuenta");
-        const inputFolio = document.getElementById("f-folio");
-        const selectEstatus = document.getElementById("f-estatus");
+        const ac = document.getElementById("a-cuenta");
+        const af = document.getElementById("a-folio");
+        const ai = document.getElementById("a-inst");
+        const ae = document.getElementById("a-estatus");
 
-        // Función de filtro optimizada con debounce para evitar bloqueos
+        // Filtro optimizado con debounce
         let timerFiltro;
-        function ejecutarFiltro() {
+        function filtrarAdmin() {
             clearTimeout(timerFiltro);
             timerFiltro = setTimeout(() => {
-                const cVal = inputCuenta.value.toLowerCase();
-                const fVal = inputFolio.value.toLowerCase();
-                const eVal = selectEstatus.value;
+                const valC = ac.value.toLowerCase();
+                const valF = af.value.toLowerCase();
+                const valI = ai.value.toLowerCase();
+                const valE = ae.value;
 
-                datosMemoria.forEach(item => {
-                    const cumple = item.cuenta.includes(cVal) && 
-                                   item.folio.includes(fVal) && 
-                                   (eVal === "" || item.estatus === eVal);
-                    item.elemento.style.display = cumple ? "" : "none";
+                datosAdminMemoria.forEach(item => {
+                    const vis = item.c.includes(valC) && 
+                                item.f.includes(valF) && 
+                                item.i.includes(valI) && 
+                                (valE === "" || item.e === valE);
+                    item.el.style.display = vis ? "" : "none";
                 });
             }, 150); // pequeño retraso para suavizar la búsqueda
         }
 
-        // Escuchadores de eventos
-        inputCuenta.addEventListener("input", ejecutarFiltro);
-        inputFolio.addEventListener("input", ejecutarFiltro);
-        selectEstatus.addEventListener("change", ejecutarFiltro);
+        [ac, af, ai, ae].forEach(el => {
+            const evento = el.tagName === 'SELECT' ? 'change' : 'input';
+            el.addEventListener(evento, filtrarAdmin);
+        });
 
-        // Ordenamiento nativo optimizado
-        function ordenar(n) {
-            const table = document.getElementById("miTabla");
+        // Ordenamiento optimizado
+        function ordenarAdmin(n) {
+            const table = document.getElementById("tablaAdmin");
             const tbody = table.tBodies[0];
-            const rowsArr = Array.from(tbody.rows);
+            const rows = Array.from(tbody.rows);
             const dir = table.getAttribute("data-dir") === "asc" ? -1 : 1;
-            
-            rowsArr.sort((a, b) => {
+
+            rows.sort((a, b) => {
                 const vA = a.cells[n].textContent.toLowerCase();
                 const vB = b.cells[n].textContent.toLowerCase();
                 return vA.localeCompare(vB) * dir;
             });
 
             table.setAttribute("data-dir", dir === 1 ? "asc" : "desc");
-            rowsArr.forEach(r => tbody.appendChild(r));
+            rows.forEach(r => tbody.appendChild(r));
         }
 
-        // Exponemos ordenar para usarlo desde el HTML
-        window.ordenar = ordenar;
+        // Exponemos ordenarAdmin para usarlo desde el HTML
+        window.ordenarAdmin = ordenarAdmin;
     });
 </script>
