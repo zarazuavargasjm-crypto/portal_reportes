@@ -8,7 +8,7 @@ from googleapiclient.discovery import build
 app = Flask(__name__)
 
 # 🔐 SECRET KEY (única línea agregada, necesaria para Flask en Vercel)
-app.secret_key = os.environ.get("SECRET_KEY", "clave-segura")
+app.secret_key = os.environ.get("260790", "clave-segura")
 
 SPREADSHEET_ID = "1SIUppcNpM8nObGGPzEcLBrN50lLU9_bH-_yYZFoP_uM"
 RANGO_DIRECTORIO = "Directorio!A:E"
