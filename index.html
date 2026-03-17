@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal de Reportes</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="header-uaeh">
+    <h1>Universidad Autónoma del Estado de Hidalgo</h1>
+    <h2>Dirección de Administración Escolar</h2>
+    <h3>Área de Trámites y Certificados</h3>
+</div>
+
+<div class="login-container">
+    <h2>Acceso al Portal</h2>
+
+    <p id="error" style="color:red; text-align:center;"></p>
+
+    <form id="loginForm">
+        <label>Usuario</label>
+        <input name="usuario" id="usuario" required>
+
+        <label>NIP</label>
+        <input name="nip" id="nip" type="password" required>
+
+        <button type="submit">Entrar</button>
+    </form>
+</div>
+
+<script>
+document.getElementById("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const usuario = document.getElementById("usuario").value;
+    const nip = document.getElementById("nip").value;
+
+    const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ usuario, nip })
+    });
+
+    const data = await res.json();
+
+    if (!data.ok) {
+        document.getElementById("error").textContent = data.error;
+        return;
+    }
+
+    // Si es admin
+    if (data.admin) {
+        localStorage.setItem("reportes", JSON.stringify(data.reportes));
+        window.location.href = "/admin.html";
+        return;
+    }
+
+    // Si es usuario normal
+    localStorage.setItem("reportes", JSON.stringify(data.reportes));
+    window.location.href = "/tabla.html";
+});
+</script>
+
+</body>
+</html>
