@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Reportes</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<h2 id="titulo"></h2>
+
+<table id="tabla">
+    <thead id="thead"></thead>
+    <tbody id="tbody"></tbody>
+</table>
+
+<script>
+const data = JSON.parse(localStorage.getItem("reportes"));
+if (!data) {
+    window.location.href = "/";
+}
+
+const headers = data.headers;
+const filas = data.reportes;
+const institucion = data.institucion;
+
+document.getElementById("titulo").textContent =
+    "Reportes de " + institucion;
+
+// Encabezados
+let th = "";
+headers.forEach(h => th += `<th>${h}</th>`);
+document.getElementById("thead").innerHTML = `<tr>${th}</tr>`;
+
+// Filas
+let rows = "";
+filas.forEach(f => {
+    let tds = "";
+    f.forEach(c => tds += `<td>${c}</td>`);
+    rows += `<tr>${tds}</tr>`;
+});
+document.getElementById("tbody").innerHTML = rows;
+</script>
+
+</body>
+</html>
